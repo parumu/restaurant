@@ -1,0 +1,30 @@
+[package]
+name = "session-mgr"
+version = "0.1.0"
+authors = ["fressets"]
+edition = "2018"
+
+[dependencies]
+regex = "0.1"
+rocket = "0.4.4"
+rocket_contrib = { version = "0.4.4", default-features = false, features = ["json"] }
+rocket_cors = { version = "0.5.2", default-features = false }
+serde_json = "1.0.51"
+serde = { version = "1.0.106", features = ["derive"] }
+chrono = { version = "0.4.11", features = ["serde"] }
+hex = "0.4"
+rust-crypto = "^0.2"
+libsecp256k1 = "0.3.2"
+reqwest = { version = "0.10.4", features = ["blocking", "json"] }
+tiny-keccak = { version = "2.0", features = ["keccak"] }
+rlp = "0.4.5"
+shared-types = { path = "../shared-types" }
+ansi_term = "0.12"
+paillier = { path = "../calc-core/dependency/rust-paillier", version = "0.3.4" }
+
+[dev-dependencies]
+calc-core = { path = "../calc-core" }
+reqwest = { version = "0.10", features = ["blocking", "json"] }
+
+[patch."https://github.com/KZen-networks/rust-paillier"]
+paillier = { version = "0.3.4", path = "../calc-core/dependency/rust-paillier" }

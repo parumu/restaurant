@@ -1,0 +1,10 @@
+[development]
+address = "0.0.0.0"
+port = 29830
+log = "critical"
+bg_task_interval = 3
+session_ttl = 360
+max_parties = 10     # TODO handle this
+max_sessions = 100
+max_sig_retries = 5
+eth_network = "ropsten"
