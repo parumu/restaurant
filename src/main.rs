@@ -1,8 +1,5 @@
-use session_mgr::types::Session;
-use session_mgr::build_rocket;
-use std::collections::HashMap;
+use restaurant::build_rocket;
 
 fn main() {
-  let m = HashMap::<String, Session>::new();
-  build_rocket(m, None, None, None, None).launch();
+  build_rocket().launch();
 }
