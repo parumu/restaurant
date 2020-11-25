@@ -33,10 +33,10 @@
 ## API
 | Tag | Method | Endpoint | Parameters | Response | Note |
 |-----|--------|----------|------------|----------|------|
-| Add | POST | /v1/table/[table_id]/items  | items: string[] | 200: Ok | time2cook is randomly assigned on server side. returns an id associated with the added items |
-| Remove | DELETE | /v1/table/[table_id]/[item_id] | | 200: Ok | note |
-| Query table | GET | /v1/table/[table_id] | | | shows all items of the specified table |
-| Query item | GET | /v1/table/[table_id]/[item_id] | | | show the number of the specified items of the specified table |
+| Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Ok Item[] | time2cook is randomly assigned on server side. returns an id associated with the added items |
+| Remove | DELETE | /v1/table/[table_id]/item/[item_id] | | 200: Ok | note |
+| Query table | GET | /v1/table/[table_id]/items | | Item[] | shows all items of the specified table |
+| Query item | GET | /v1/table/[table_id]/item/[item_id] | | Item | show the number of the specified items of the specified table |
 
 - 1 <= table_id <= num_tables
 
