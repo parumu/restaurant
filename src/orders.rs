@@ -21,17 +21,9 @@ impl Orders {
   }
 
   pub fn add(&mut self, item: Item) {
-    let time2prepare = 5;
-
-    let item = Item {
-      id: Uuid::new_v4().to_string(),
-      table_id: 12,
-      name: "ramen".to_string(),
-      created_at: Utc::now().timestamp(),
-      time2prepare,
-    };
-
     // add to both heap and hash
+
+
     info!("Added item {:?}", item);
   }
 
@@ -50,6 +42,7 @@ impl Orders {
   }
 
   pub fn get_all(&self) -> Vec<Item> {
+    
     vec![]
   }
 

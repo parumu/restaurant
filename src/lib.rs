@@ -4,5 +4,4 @@
 
 pub mod shared_types;
 pub mod order_mgr;
-pub mod in_memory_order_mgr;
 pub mod orders;

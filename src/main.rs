@@ -12,7 +12,6 @@ use restaurant::shared_types::{
   Item,
 };
 use restaurant::order_mgr::OrderMgr;
-use restaurant::in_memory_order_mgr::InMemoryOrderMgr;
 
 macro_rules! return_result {
   ($res: expr) => {
@@ -27,7 +26,7 @@ macro_rules! return_result {
 pub fn add_items(
   table_id: usize,
   req: Json<AddItemParam>,
-  order_mgr: State<Box<dyn OrderMgr>>,
+  order_mgr: State<OrderMgr>,
 ) -> Result<Json<Vec<Item>>, BadRequest<String>> {
   return_result!(order_mgr.add_items(table_id, &req.item_names))
 }
@@ -36,7 +35,7 @@ pub fn add_items(
 pub fn remove_item(
   table_id: usize,
   item_id: String,
-  order_mgr: State<Box<dyn OrderMgr>>,
+  order_mgr: State<OrderMgr>,
 ) -> Result<Json<()>, BadRequest<String>> {
   return_result!(order_mgr.remove_item(table_id, &item_id))
 }
@@ -44,7 +43,7 @@ pub fn remove_item(
 #[get("/table/<table_id>/items")]
 pub fn get_all_items(
   table_id: usize,
-  order_mgr: State<Box<dyn OrderMgr>>,
+  order_mgr: State<OrderMgr>,
 ) -> Result<Json<Vec<Item>>, BadRequest<String>> {
   return_result!(order_mgr.get_all_items(table_id))
 }
@@ -53,7 +52,7 @@ pub fn get_all_items(
 pub fn get_item(
   table_id: usize,
   item_id: String,
-  order_mgr: State<Box<dyn OrderMgr>>,
+  order_mgr: State<OrderMgr>,
 ) -> Result<Json<Item>, BadRequest<String>> {
   return_result!(order_mgr.get_item(table_id, &item_id))
 }
@@ -72,8 +71,8 @@ pub fn build_rocket() -> rocket::Rocket {
     .attach(AdHoc::on_attach("Order Manager", move |rocket| {
       let num_tables = rocket.config().get_int("num_tables").unwrap() as usize;
       let max_table_items = rocket.config().get_int("max_table_items").unwrap() as usize;
-      let order_mgr = InMemoryOrderMgr::new(num_tables, max_table_items);
-
+      let order_mgr = OrderMgr::new(num_tables, max_table_items);
+      
       Ok(rocket.manage(order_mgr))
     }))
 }

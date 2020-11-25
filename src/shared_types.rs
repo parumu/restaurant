@@ -12,12 +12,12 @@ pub struct Item {
   pub name: String,
   pub table_id: usize,
   pub created_at: i64,
-  pub time2prepare: u8,
+  pub ready_at: i64,
 }
 
 impl Ord for Item {
   fn cmp(&self, other: &Self) -> Ordering {
-      other.created_at.cmp(&self.created_at)
+      other.ready_at.cmp(&self.ready_at)
   }
 }
 
