@@ -4,12 +4,10 @@ use chrono::Utc;
 use crate::orders::Orders;
 use std::sync::RwLock;
 use uuid::Uuid;
-
-pub struct InMemoryOrderMgr {
-  num_tables: usize,
-  max_table_items: usize,
-  tables: Vec<RwLock<Orders>>,
-}
+use rand::{
+  thread_rng,
+  Rng,
+};
 
 macro_rules! vec_no_clone {
   ($val:expr; $n:expr) => {{
@@ -26,9 +24,16 @@ macro_rules! validate_table_id {
   };
 }
 
+pub struct InMemoryOrderMgr {
+  num_tables: usize,
+  max_table_items: usize,
+  tables: Vec<RwLock<Orders>>,
+}
+
 impl InMemoryOrderMgr {
   pub fn new(num_tables: usize, max_table_items: usize) -> InMemoryOrderMgr {
     let tables = vec_no_clone![RwLock::new(Orders::new()); num_tables];
+
     InMemoryOrderMgr {
       num_tables,
       max_table_items,
@@ -58,13 +63,16 @@ impl OrderMgr for InMemoryOrderMgr {
     let mut items = vec![];
 
     // create items and add to orders
+    let mut rng = thread_rng();
+    let time2prepare: u8 = rng.gen_range(5, 15);
+
     for item_name in item_names {
       let item = Item {
         id: Uuid::new_v4().to_string(),
         name: item_name.to_string(),
         table_id,
         created_at: Utc::now().timestamp(),
-        time2prepare: 5,
+        time2prepare,
       };
       orders.add(item.clone());
       items.push(item);
@@ -99,7 +107,6 @@ impl OrderMgr for InMemoryOrderMgr {
     if let Some(item) = orders.get(item_name) {
       info!("Got item {} for table {}", item_name, table_id);
       Ok(item)
-
     } else {
       Err(Errors::ItemNotFound)
     }

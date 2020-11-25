@@ -13,3 +13,4 @@ reqwest = { version = "0.10.4", features = ["blocking", "json"] }
 log = "0.4"
 chrono = "0.4"
 uuid = { version = "0.8", features = ["serde", "v4"] }
+rand = "0.7"

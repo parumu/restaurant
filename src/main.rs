@@ -6,8 +6,6 @@ use rocket::{
   {routes, post, get, delete, State},
   response::status::BadRequest,
 };
-use std::sync::{Arc, };
-use std::cell::RefCell;
 
 use restaurant::shared_types::{
   AddItemParam,
@@ -38,7 +36,7 @@ pub fn add_items(
 pub fn remove_item(
   table_id: usize,
   item_id: String,
-  order_mgr: State<Arc<dyn OrderMgr>>,
+  order_mgr: State<Box<dyn OrderMgr>>,
 ) -> Result<Json<()>, BadRequest<String>> {
   return_result!(order_mgr.remove_item(table_id, &item_id))
 }
