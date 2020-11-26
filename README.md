@@ -25,16 +25,16 @@
 ### Data structure
 
 #### Unresolved issues
-1. Using `Arc<RefCell<Item>>` to share `Item` between `inaryHeap` and `HashMap`
-  According to doc, `RefCell` is for single thread and `Mutex` should be used for
-  multi thread. But `RefCell` cannot be replaced with `Mutex` since `Mutex` doesn't
-  implement `Ord` which is required by `BinaryHeap`. `OrderMgr` is in charge of managing
-  `Arc<RefCell<Item>>` and accesses to `Arc<RefCell<Item>>` is controlled by `RwLock`
-  at `OrderMgr` level so that only one thread is allowed to update the data structure of
-  `OrderMgr` at the same time.
-2. Relating to 1, when returning `Arc<RefCell<Item>>` from `TableOrders` to a caller,
-   to unwrap `Arc` and `RefCell`, it newly builds Item from `Arc<RefCell<Item>>`.
-   Unable to find a nicer way to return a defensive copy.
+1. Manually implementing `Sync` and `Send` traits to `TableOrders` to use `RefCell`.
+   Since `Item` is stored `Arc<RefCell<Item>>` so that `Item` can be shared between
+   `BinaryHeap` and `HashMap` in `OrderMgr`.
+   `RefCell` is designed for single threaded code and `Mutex` should be used for
+   multi threaded code. But a type wrapped by `Mutex` cannot be used with `BinaryHeap`
+   since `Mutex` doesn't implement `Ord`.
+   For thread safely, `RwLock` is used to guard all accesses to `Item` in `OrderMgr`.
+
+2. To return `Item` instead of `Arc<RefCell<Item>>` from `TableOrders` to a caller,
+   new `Item` is manually built from `Arc<RefCell<Item>>`.
 
 ## Client
 - Runs on a thread (5-10 simultaneously)

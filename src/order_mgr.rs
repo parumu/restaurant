@@ -7,8 +7,6 @@ use std::{
 use chrono::Utc;
 use uuid::Uuid;
 use rand::{thread_rng, Rng};
-use std::sync::Arc;
-use std::cell::RefCell;
 
 macro_rules! vec_no_clone {
   ($val:expr; $n:expr) => {{
