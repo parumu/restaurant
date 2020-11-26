@@ -5,3 +5,4 @@
 pub mod shared_types;
 pub mod order_mgr;
 pub mod orders;
+pub mod binary_heap;

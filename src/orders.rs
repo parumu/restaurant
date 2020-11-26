@@ -1,14 +1,11 @@
 use std::collections::{
-  binary_heap::BinaryHeap,
   hash_map::HashMap,
 };
 use crate::shared_types::Item;
-use uuid::Uuid;
-use chrono::Utc;
+use crate::binary_heap::BinaryHeap;
 
-#[derive(Clone)]
 pub struct Orders {
-  heap: BinaryHeap<Item>,
+  heap: BinaryHeap,
   hash: HashMap<String, Item>,
 }
 
@@ -28,7 +25,7 @@ impl Orders {
   }
 
   // returns false, if item is not found
-  pub fn remove(&mut self, item_name: &str) -> bool {
+  pub fn remove(&mut self, _item_name: &str) -> bool {
     // remove from heap and hash
     false
   }
@@ -37,12 +34,12 @@ impl Orders {
 
   }
 
-  pub fn get(&self, item_name: &str) -> Option<Item> {
+  pub fn get(&self, _item_name: &str) -> Option<Item> {
     None
   }
 
   pub fn get_all(&self) -> Vec<Item> {
-    
+
     vec![]
   }
 
