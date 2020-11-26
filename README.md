@@ -24,11 +24,22 @@
 
 ### Data structure
 
+#### Unresolved issues
+1. Using `Arc<RefCell<Item>>` to share `Item` between `inaryHeap` and `HashMap`
+  According to doc, `RefCell` is for single thread and `Mutex` should be used for
+  multi thread. But `RefCell` cannot be replaced with `Mutex` since `Mutex` doesn't
+  implement `Ord` which is required by `BinaryHeap`. `OrderMgr` is in charge of managing
+  `Arc<RefCell<Item>>` and accesses to `Arc<RefCell<Item>>` is controlled by `RwLock`
+  at `OrderMgr` level so that only one thread is allowed to update the data structure of
+  `OrderMgr` at the same time.
+2. Relating to 1, when returning `Arc<RefCell<Item>>` from `TableOrders` to a caller,
+   to unwrap `Arc` and `RefCell`, it newly builds Item from `Arc<RefCell<Item>>`.
+   Unable to find a nicer way to return a defensive copy.
+
 ## Client
 - Runs on a thread (5-10 simultaneously)
 - Randomly sends add/remove/query requests to a table
 - Assumes that the set of tables to be a finite set (at least 100)
-
 
 ## API
 | Tag | Method | Endpoint | Parameters | Response | Note |
@@ -46,7 +57,6 @@
 $ cd [project root]
 $ cargo build
 ```
-
 ## How to run
 ```
 $ cd [project root]

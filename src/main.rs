@@ -6,12 +6,11 @@ use rocket::{
   {routes, post, get, delete, State},
   response::status::BadRequest,
 };
-
-use restaurant::shared_types::{
-  AddItemParam,
-  Item,
+use serde::Deserialize;
+use restaurant::{
+  item::Item,
+  order_mgr::OrderMgr,
 };
-use restaurant::order_mgr::OrderMgr;
 
 macro_rules! return_result {
   ($res: expr) => {
@@ -20,6 +19,11 @@ macro_rules! return_result {
       Err(e) => Err(BadRequest(Some(e.to_string()))),
     }
   };
+}
+
+#[derive(Deserialize, Debug)]
+pub struct AddItemParam {
+  pub item_names: Vec<String>,
 }
 
 #[post("/table/<table_id>/items", data = "<req>")]
@@ -57,7 +61,7 @@ pub fn get_item(
   return_result!(order_mgr.get_item(table_id, &item_id))
 }
 
-pub fn build_rocket() -> rocket::Rocket {
+fn main() {
   rocket::ignite()
     .mount(
       "/v1",
@@ -72,11 +76,8 @@ pub fn build_rocket() -> rocket::Rocket {
       let num_tables = rocket.config().get_int("num_tables").unwrap() as usize;
       let max_table_items = rocket.config().get_int("max_table_items").unwrap() as usize;
       let order_mgr = OrderMgr::new(num_tables, max_table_items);
-      
+
       Ok(rocket.manage(order_mgr))
     }))
-}
-
-fn main() {
-  build_rocket().launch();
+    .launch();
 }

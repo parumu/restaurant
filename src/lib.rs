@@ -2,6 +2,6 @@
 #![feature(decl_macro, proc_macro_hygiene)]
 #[macro_use] extern crate log;
 
-pub mod shared_types;
+pub mod item;
 pub mod order_mgr;
-pub mod orders;
+pub mod table_orders;

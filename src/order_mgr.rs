@@ -1,10 +1,14 @@
-use crate::shared_types::Item;
+use crate::item::Item;
+use crate::table_orders::TableOrders;
+use std::{
+  fmt,
+  sync::RwLock,
+};
 use chrono::Utc;
-use crate::orders::Orders;
-use std::sync::RwLock;
 use uuid::Uuid;
 use rand::{thread_rng, Rng};
-use std::fmt;
+use std::sync::Arc;
+use std::cell::RefCell;
 
 macro_rules! vec_no_clone {
   ($val:expr; $n:expr) => {{
@@ -38,12 +42,12 @@ impl fmt::Display for Errors {
 pub struct OrderMgr {
   num_tables: usize,
   max_table_items: usize,
-  tables: Vec<RwLock<Orders>>,
+  tables: Vec<RwLock<TableOrders>>,
 }
 
 impl OrderMgr {
   pub fn new(num_tables: usize, max_table_items: usize) -> OrderMgr {
-    let tables = vec_no_clone![RwLock::new(Orders::new()); num_tables];
+    let tables = vec_no_clone![RwLock::new(TableOrders::new()); num_tables];
     OrderMgr {
       num_tables,
       max_table_items,
@@ -86,7 +90,7 @@ impl OrderMgr {
         is_removed: false,
       };
       orders.add(item.clone());
-      items.push(item);
+      items.push(item.clone());
       info!("Added item {} to table {}", item_name, table_id);
     }
     Ok(items) // return generated items to user
@@ -142,9 +146,25 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_initialization() {
+  fn test_new() {
     let om = OrderMgr::new(1, 2);
     assert_eq!(1, om.num_tables);
     assert_eq!(2, om.max_table_items);
+  }
+
+  #[test]
+  fn test_get_all_items() {
+  }
+
+  #[test]
+  fn test_get_item() {
+  }
+
+  #[test]
+  fn test_remove_item() {
+  }
+
+  #[test]
+  fn test_add_items() {
   }
 }

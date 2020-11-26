@@ -1,14 +1,9 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::cmp::Ordering;
-
-#[derive(Deserialize, Debug)]
-pub struct AddItemParam {
-  pub item_names: Vec<String>,
-}
 
 #[derive(Serialize, Debug, Clone, Eq, PartialEq)]
 pub struct Item {
-  pub id: String,  // expecting UUID. TODO consider using number
+  pub id: String,  // UUID
   pub name: String,
   pub table_id: usize,
   pub created_at: i64,
