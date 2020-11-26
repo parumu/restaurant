@@ -83,6 +83,7 @@ impl OrderMgr {
         table_id,
         created_at: Utc::now().timestamp(),
         ready_at,
+        is_removed: false,
       };
       orders.add(item.clone());
       items.push(item);
@@ -98,13 +99,13 @@ impl OrderMgr {
     let orders_rwl = &self.tables[table_id];
     let mut orders = orders_rwl.write().unwrap();  // TODO handle error case
 
-    if !orders.remove(item_name) {
-      // warn if item to remove is not found
+    if let Some(x) = orders.remove(item_name) {
+      info!("Removed item {:?} from table {}", x, table_id);
+      Ok(())
+    } else {
       warn!("Item {} not found", item_name);
       return Err(Errors::ItemNotFound)
     }
-    info!("Removed item {} from table {}", item_name, table_id);
-    Ok(())
   }
 
   pub fn get_item(&self, table_id: usize, item_name: &str) -> Result<Item, Errors> {
