@@ -24,6 +24,14 @@ impl BinaryHeap {
     }
   }
 
+  pub fn peek_root_ready_at(&self) -> Option<i64> {
+    if self.nodes.len() == 0 {
+      None
+    } else {
+      Some(self.nodes[0].ready_at)
+    }
+  }
+
   pub fn pop_root(&mut self) -> Option<Arc<Item>> {
     // if no item in the heap
     if self.nodes.len() == 0 {
@@ -37,7 +45,9 @@ impl BinaryHeap {
     self.nodes.remove(last);
 
     // parcolate down the root node to appropriate position
-    self.parcolate_down(0);
+    if self.nodes.len() > 0 {
+      self.parcolate_down(0);
+    }
 
     Some(x)
   }
@@ -183,11 +193,68 @@ impl BinaryHeap {
   }
 }
 
-// #[cfg(test)]
-// mod tests {
-//   use super::*;
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use uuid::Uuid;
 
-//   #[test]
-//   fn test_new() {
-//   }
-// }
+  fn item_of(name: &str, created_at: i64, ready_at: i64) -> Item {
+    Item {
+      id: Uuid::new_v4().to_string(),
+      name: name.to_string(),
+      table_id: 0,
+      created_at,
+      ready_at,
+    }
+  }
+
+  #[test]
+  fn test_add_and_pop_3() {
+    let mut h = BinaryHeap::new();
+    assert_eq!(0, h.len());
+
+    let i1 = item_of("ramen", 0, 15);
+    h.add(i1);
+    assert_eq!(1, h.len());
+
+    let i2 = item_of("soba", 0, 5);
+    h.add(i2);
+    assert_eq!(2, h.len());
+
+    let i3 = item_of("udon", 0, 7);
+    h.add(i3);
+    assert_eq!(3, h.len());
+
+    let p1 = h.pop_root();
+    assert_eq!(true, p1.is_some());
+    assert_eq!("soba", p1.unwrap().name);
+
+    let p2 = h.pop_root();
+    assert_eq!(true, p2.is_some());
+    assert_eq!("udon", p2.unwrap().name);
+
+    let p3 = h.pop_root();
+    assert_eq!(true, p3.is_some());
+    assert_eq!("ramen", p3.unwrap().name);
+  }
+
+  #[test]
+  fn test_remove() {
+    let mut h = BinaryHeap::new();
+    let i1 = item_of("ramen", 0, 30);
+    let i2 = item_of("cake", 0, 25);
+    let i3 = item_of("spagetti", 0, 10);
+    let i4 = item_of("onion", 0, 99);
+    let i5 = item_of("curry", 0, 18);
+    let i6 = item_of("sandwich", 0, 48);
+
+    h.add(i1);
+    h.add(i2);
+    h.add(i3);
+    h.add(i4);
+    h.add(i5);
+    h.add(i6);
+
+    // remove spagetti
+  }
+}

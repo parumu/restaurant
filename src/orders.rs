@@ -30,8 +30,8 @@ impl Orders {
     false
   }
 
-  pub fn remove_cooked() {
-
+  pub fn remove_cooked(&self) {
+    info!("{}", self.hash.len());
   }
 
   pub fn get(&self, _item_name: &str) -> Option<Item> {
