@@ -27,7 +27,7 @@ impl TableOrders {
   pub fn add(&mut self, item: Item) {
     let arc_item = Arc::new(RefCell::new(item));
     self.heap.push(arc_item.clone());
-    self.hash.insert(arc_item.borrow().id.clone(), arc_item.clone());
+    self.hash.insert(arc_item.borrow().uuid.clone(), arc_item.clone());
   }
 
   pub fn get(&self, item_id: &str) -> Option<Item> {
@@ -57,13 +57,13 @@ impl TableOrders {
             return res
           }
           if item_peek.borrow().is_removed {
-            self.hash.remove(&item_peek.borrow().id);
+            self.hash.remove(&item_peek.borrow().uuid);
             self.heap.pop().unwrap(); // throw away popped value and continue
             continue
           }
           // otherwise remove root item and keep it to return to caller at the end
           let item = self.heap.pop().unwrap();
-          self.hash.remove(&item.borrow().id);
+          self.hash.remove(&item.borrow().uuid);
 
           res.push(TableOrders::unwrap_item(item.clone()));
         }
@@ -78,7 +78,7 @@ impl TableOrders {
   fn unwrap_item(item: Arc<RefCell<Item>>) -> Item {
     let item = item.borrow();
     Item {
-      id: item.id.clone(),
+      uuid: item.uuid.clone(),
       name: item.name.clone(),
       table_id: item.table_id,
       created_at: item.created_at,
@@ -94,7 +94,7 @@ mod tests {
 
   fn item_of(id: &str, name: &str, created_at: i64, ready_at: i64, is_removed: bool) -> Item {
     Item {
-      id: id.to_string(),
+      uuid: id.to_string(),
       name: name.to_string(),
       table_id: 0,
       created_at,
@@ -131,8 +131,8 @@ mod tests {
 
     // should be able to get existing items
     for x in vec![&i1, &i2, &i3] {
-      if let Some(xg) = to.get(&x.id) {
-        assert_eq!(xg.id, x.id);
+      if let Some(xg) = to.get(&x.uuid) {
+        assert_eq!(x.uuid, x.uuid);
         assert_eq!(false, xg.is_removed);
         assert_eq!(to.len(), 3)
       } else {
@@ -162,10 +162,10 @@ mod tests {
     let mut items = to.get_all();
     assert_eq!(3, items.len());
 
-    items.sort_by(|a, b| a.id.cmp(&b.id));
-    assert_eq!(i1.id, items[0].id);
-    assert_eq!(i2.id, items[1].id);
-    assert_eq!(i3.id, items[2].id);
+    items.sort_by(|a, b| a.uuid.cmp(&b.uuid));
+    assert_eq!(i1.uuid, items[0].uuid);
+    assert_eq!(i2.uuid, items[1].uuid);
+    assert_eq!(i3.uuid, items[2].uuid);
   }
 
   #[test]
@@ -188,7 +188,7 @@ mod tests {
     let r2 = to.remove_before_eq_threshold(10);
     assert_eq!(2, to.len());
     assert_eq!(1, r2.len());
-    assert_eq!(r2[0].id, i3.id);
+    assert_eq!(r2[0].uuid, i3.uuid);
 
     // this should remove i2 and i2 should be thrown away
     let r3 = to.remove_before_eq_threshold(15);
@@ -204,7 +204,7 @@ mod tests {
     let r5 = to.remove_before_eq_threshold(30);
     assert_eq!(0, to.len());
     assert_eq!(1, r5.len());
-    assert_eq!(r5[0].id, i1.id);
+    assert_eq!(r5[0].uuid, i1.uuid);
 
     // this should not remove any item
     let r6 = to.remove_before_eq_threshold(31);
@@ -226,39 +226,38 @@ mod tests {
     // before remove, i2 is not marked as removed
     // running inside block to release i2g borrow
     {
-      let i2g = to.get(&i2.id).unwrap();
+      let i2g = to.get(&i2.uuid).unwrap();
       assert_eq!(false, i2g.is_removed);
     }
 
     // remove i2
-    if let Some(i2r) = to.remove(&i2.id) {
-      assert_eq!(i2r.id, i2.id);
+    if let Some(i2r) = to.remove(&i2.uuid) {
+      assert_eq!(i2r.uuid, i2.uuid);
       assert_eq!(true, i2r.is_removed); // return item should be marked as removed
       assert_eq!(to.len(), 2);
 
       // getting up to time 20 should remove i2
       let r = to.remove_before_eq_threshold(20);
-      println!("R {:?}", r);
       assert_eq!(1, r.len());
-      assert_eq!(i3.id, r[0].id);  // i3 ready_at 10 should have been removed
+      assert_eq!(i3.uuid, r[0].uuid);  // i3 ready_at 10 should have been removed
 
     } else {
       assert!(false)
     }
 
     // i2 cannot be removed again
-    if to.remove(&i2.id).is_some() {
+    if to.remove(&i2.uuid).is_some() {
       assert!(false)
     }
 
     // i3 is already removed
-    if to.remove(&i3.id).is_some() {
+    if to.remove(&i3.uuid).is_some() {
       assert!(false)
     }
 
     // remove i1
-    if let Some(i1r) = to.remove(&i1.id) {
-      assert_eq!(i1r.id, i1.id);
+    if let Some(i1r) = to.remove(&i1.uuid) {
+      assert_eq!(i1r.uuid, i1.uuid);
       assert_eq!(true, i1r.is_removed);
       assert_eq!(to.len(), 0);
     } else {

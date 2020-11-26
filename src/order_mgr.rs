@@ -80,7 +80,7 @@ impl OrderMgr {
 
     for item_name in item_names {
       let item = Item {
-        id: Uuid::new_v4().to_string(),
+        uuid: Uuid::new_v4().to_string(),
         name: item_name.to_string(),
         table_id,
         created_at: Utc::now().timestamp(),

@@ -1,0 +1,6 @@
+version: '3'
+services:
+  restaurant:
+    image: "restaurant"
+    ports:
+      - "8888:8888"

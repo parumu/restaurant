@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 
 #[derive(Serialize, Debug, Clone, Eq, PartialEq)]
 pub struct Item {
-  pub id: String,  // UUID
+  pub uuid: String,
   pub name: String,
   pub table_id: usize,
   pub created_at: i64,

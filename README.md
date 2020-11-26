@@ -1,9 +1,4 @@
 # Simple Restaurant
-## Focus
-- Data structure
-- Multi-threaded capacity
-- Proper unit test
-- Functional
 
 ## Application
 - Accepts following types of requests
@@ -21,6 +16,16 @@
     - Returns remaining orders of a specified item of a table
 
 - Handles 10+ simultaneous requests
+
+## API
+| Tag | Method | Endpoint | Parameters | Response | Note |
+|-----|--------|----------|------------|----------|------|
+| Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Ok Item[] | time2cook is randomly assigned on server side. returns an id associated with the added items |
+| Remove | DELETE | /v1/table/[table_id]/item/[item_id] | | 200: Ok | note |
+| Query table | GET | /v1/table/[table_id]/items | | Item[] | shows all items of the specified table |
+| Query item | GET | /v1/table/[table_id]/item/[item_id] | | Item | show the number of the specified items of the specified table |
+
+- 1 <= table_id <= num_tables
 
 ### Architecture
 
@@ -53,21 +58,11 @@
 - Randomly sends add/remove/query requests to a table
 - Assumes that the set of tables to be a finite set (at least 100)
 
-## API
-| Tag | Method | Endpoint | Parameters | Response | Note |
-|-----|--------|----------|------------|----------|------|
-| Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Ok Item[] | time2cook is randomly assigned on server side. returns an id associated with the added items |
-| Remove | DELETE | /v1/table/[table_id]/item/[item_id] | | 200: Ok | note |
-| Query table | GET | /v1/table/[table_id]/items | | Item[] | shows all items of the specified table |
-| Query item | GET | /v1/table/[table_id]/item/[item_id] | | Item | show the number of the specified items of the specified table |
-
-- 1 <= table_id <= num_tables
-
 ## Required environment
-- Nightly rust
+- Nightly Rust
 
 ## How to build
-
+### Cargo
 1. install nightly version of Rust with `rustup`
 ```
 $ cd [project root]
@@ -76,16 +71,21 @@ $ cargo build
 
 ### Docker
 ```
+$ cd [project root]
 $ docker build -t restaurant .
 ```
 
 ## How to run
+### Cargo
 ```
 $ cd [project root]
 $ cargo run --release
 ```
 
-## Expected outputs
+### Docker
+```
+$ cd [project root]
+$ docker-compose up
+```
 
-# How to deploy (needed?)
-- add Dockerfile and docker-compose.yaml
+## Expected outputs
