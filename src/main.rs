@@ -16,7 +16,7 @@ macro_rules! return_result {
   ($res: expr) => {
     match $res {
       Ok(x) => Ok(Json(x)),
-      Err(e) => Err(BadRequest(Some(e.to_string()))),
+      Err(e) => Err(BadRequest(Some(e.to_string()))), // TODO return better return code for not found etc
     }
   };
 }

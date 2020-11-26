@@ -22,19 +22,31 @@
 
 - Handles 10+ simultaneous requests
 
+### Architecture
+
 ### Data structure
 
-#### Unresolved issues
-1. Manually implementing `Sync` and `Send` traits to `TableOrders` to use `RefCell`.
-   Since `Item` is stored `Arc<RefCell<Item>>` so that `Item` can be shared between
-   `BinaryHeap` and `HashMap` in `OrderMgr`.
-   `RefCell` is designed for single threaded code and `Mutex` should be used for
-   multi threaded code. But a type wrapped by `Mutex` cannot be used with `BinaryHeap`
-   since `Mutex` doesn't implement `Ord`.
-   For thread safely, `RwLock` is used to guard all accesses to `Item` in `OrderMgr`.
+#### Why Arc?
+- Each `Item` object needs to be shared by `BinaryHeap` and `HashMap` in `TableOrders`.
+  Reference counting GC is needed for that.
+- Since `TableOrders` is used by `OrderMgr` and `OrderMgr` runs on multiple threads,
+  the reference counting GC needs to be `Arc` instead of `Rc`.
 
-2. To return `Item` instead of `Arc<RefCell<Item>>` from `TableOrders` to a caller,
-   new `Item` is manually built from `Arc<RefCell<Item>>`.
+#### Why RefCell?
+- Since `Item` needs to be wrapped by `Arc`, but `Arc` doesn't expose mutable reference
+  of contained type, Item is further needed to be wrapped by something that exposes
+  mutable reference.
+- `RefCell` and `Mutex` can be used for the purpose. `RefCell` is designed for single-threaded
+  environment whereas `Mutex` is for multi-threaded.
+- Since `Item` is used in multi-threaded environment, `Mutex` should be used, but
+  `Mutex` cannnot be used since `BinaryHeap` which requires `Ord` to the contained type
+  needs to hold `Item` but `Mutex` doesn't implement `Ord`.
+
+#### Remaining issues
+1. `RefCell` is used in multi threaded context.
+2. Manually implementing `Sync` and `Send` traits to `TableOrders` to use `RefCell`.
+   For thread safely, `RwLock` is used to guard all accesses to `Item` in `OrderMgr`.
+3. To unwrap `Arc<RefCell<Item>>` to `Item`, new `Item` is manually created.
 
 ## Client
 - Runs on a thread (5-10 simultaneously)
@@ -51,16 +63,26 @@
 
 - 1 <= table_id <= num_tables
 
+## Required environment
+- Nightly rust
+
 ## How to build
+
 1. install nightly version of Rust with `rustup`
 ```
 $ cd [project root]
 $ cargo build
 ```
+
+### Docker
+```
+$ docker build -t restaurant .
+```
+
 ## How to run
 ```
 $ cd [project root]
-$ cargo run
+$ cargo run --release
 ```
 
 ## Expected outputs
