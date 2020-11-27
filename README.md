@@ -17,7 +17,16 @@
 
 - Handles 10+ simultaneous requests
 
-## API
+### Configuration
+- address = "0.0.0.0"
+- port = 8888
+- num_tables = 100
+- max_table_items = 10
+- one_min_in_sec = 60
+- log = "normal" // rocket log level - "normal", "debug", or "critical"
+- secret_key = [a 256-bit base64 encoded string] // rocket secret_key. required for production
+
+### API
 | Tag | Method | Endpoint | Parameters | Response | Note |
 |-----|--------|----------|------------|----------|------|
 | Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Ok Item[] | time2cook is randomly assigned on server side. returns an id associated with the added items |

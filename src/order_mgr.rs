@@ -40,15 +40,21 @@ impl fmt::Display for Errors {
 pub struct OrderMgr {
   num_tables: usize,
   max_table_items: usize,
+  one_min_in_sec: i64,
   tables: Vec<RwLock<TableOrders>>,
 }
 
 impl OrderMgr {
-  pub fn new(num_tables: usize, max_table_items: usize) -> OrderMgr {
+  pub fn new(
+    num_tables: usize,
+    max_table_items: usize,
+    one_min_in_sec: i64,
+  ) -> OrderMgr {
     let tables = vec_no_clone![RwLock::new(TableOrders::new()); num_tables];
     OrderMgr {
       num_tables,
       max_table_items,
+      one_min_in_sec,
       tables,
     }
   }
@@ -59,10 +65,14 @@ impl OrderMgr {
     item_names: &Vec<String>
   ) -> Result<Vec<Item>, Errors> {
     validate_table_id!(table_id, self.num_tables);
+    let now = Utc::now().timestamp();
 
     // get orders for the table
     let orders_rwl = &self.tables[table_id];
     let mut orders = orders_rwl.write().unwrap();  // TODO handle error case
+
+    // remove cooked items from TableOreders of the table
+    orders.remove_before_eq_threshold(now);
 
     // return error if # of items exceeds the limit
     if orders.len() == self.max_table_items {
@@ -74,16 +84,16 @@ impl OrderMgr {
 
     // create items and add to orders
     let mut rng = thread_rng();
-    let created_at = Utc::now().timestamp();
-    let time2prepare: i64 = 60 * rng.gen_range(5, 15);
-    let ready_at = created_at + time2prepare;
+    let created_at = now;
+    let time2cook: i64 = self.one_min_in_sec * rng.gen_range(5, 15);
+    let ready_at = created_at + time2cook;
 
     for item_name in item_names {
       let item = Item {
         uuid: Uuid::new_v4().to_string(),
         name: item_name.to_string(),
         table_id,
-        created_at: Utc::now().timestamp(),
+        created_at,
         ready_at,
         is_removed: false,
       };
@@ -101,12 +111,15 @@ impl OrderMgr {
     let orders_rwl = &self.tables[table_id];
     let mut orders = orders_rwl.write().unwrap();  // TODO handle error case
 
+    // remove cooked items from TableOreders of the table
+    orders.remove_before_eq_threshold(Utc::now().timestamp());
+
     if let Some(x) = orders.remove(item_name) {
       info!("Removed item {:?} from table {}", x, table_id);
       Ok(())
     } else {
       warn!("Item {} not found", item_name);
-      return Err(Errors::ItemNotFound)
+      Err(Errors::ItemNotFound)
     }
   }
 
@@ -145,7 +158,7 @@ mod tests {
 
   #[test]
   fn test_new() {
-    let om = OrderMgr::new(1, 2);
+    let om = OrderMgr::new(1, 2, 60);
     assert_eq!(1, om.num_tables);
     assert_eq!(2, om.max_table_items);
   }

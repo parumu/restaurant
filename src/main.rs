@@ -74,8 +74,15 @@ fn main() {
     )
     .attach(AdHoc::on_attach("Order Manager", move |rocket| {
       let num_tables = rocket.config().get_int("num_tables").unwrap() as usize;
+      if num_tables == 0 {
+        panic!("num_tables must be a positive integer")
+      }
       let max_table_items = rocket.config().get_int("max_table_items").unwrap() as usize;
-      let order_mgr = OrderMgr::new(num_tables, max_table_items);
+      if max_table_items == 0 {
+        panic!("max_table_items must be a positive integer")
+      }
+      let one_min_in_sec = rocket.config().get_int("one_min_in_sec").unwrap() as i64;
+      let order_mgr = OrderMgr::new(num_tables, max_table_items, one_min_in_sec);
 
       Ok(rocket.manage(order_mgr))
     }))
