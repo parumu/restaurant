@@ -61,7 +61,7 @@ pub fn get_item(
   return_result!(order_mgr.get_item(table_id, &item_uuid))
 }
 
-pub fn build_rocket() -> rocket::Rocket {
+pub fn build_rocket(one_min_in_src_opt: Option<i64>) -> rocket::Rocket {
   rocket::ignite()
     .mount(
       "/v1",
@@ -81,7 +81,10 @@ pub fn build_rocket() -> rocket::Rocket {
       if max_table_items == 0 {
         panic!("max_table_items must be a positive integer")
       }
-      let one_min_in_sec = rocket.config().get_int("one_min_in_sec").unwrap() as i64;
+      let one_min_in_sec = match one_min_in_src_opt {
+        None => rocket.config().get_int("one_min_in_sec").unwrap() as i64,
+        Some(x) => x,
+      };
       let order_mgr = OrderMgr::new(num_tables, max_table_items, one_min_in_sec);
 
       Ok(rocket.manage(order_mgr))
@@ -89,7 +92,7 @@ pub fn build_rocket() -> rocket::Rocket {
 }
 
 fn main() {
-  build_rocket().launch();
+  build_rocket(None).launch();
 }
 
 #[cfg(test)]
@@ -99,6 +102,8 @@ mod tests {
     local::Client,
     http::Status,
   };
+  use std::{thread, time};
+  use chrono::Utc;
 
   // curl -X POST -H "Content-Type: application/json" -d '{"items_names":["ramen"] }' http://localhost/v1/table/0/items
 
@@ -111,7 +116,7 @@ mod tests {
 
   #[test]
   fn test_add_item() {
-    let rocket = build_rocket();
+    let rocket = build_rocket(None);
     let cli = Client::new(rocket).unwrap();
 
     let res = cli.post("/v1/table/0/items").body(add_req(vec!["ramen"])).dispatch();
@@ -127,7 +132,7 @@ mod tests {
 
   #[test]
   fn test_get_item() {
-    let rocket = build_rocket();
+    let rocket = build_rocket(None);
     let cli = Client::new(rocket).unwrap();
 
     // add items
@@ -159,7 +164,7 @@ mod tests {
 
   #[test]
   fn test_get_all_items() {
-    let rocket = build_rocket();
+    let rocket = build_rocket(None);
     let cli = Client::new(rocket).unwrap();
 
     // add items
@@ -190,7 +195,7 @@ mod tests {
 
   #[test]
   fn test_remove_item() {
-    let rocket = build_rocket();
+    let rocket = build_rocket(None);
     let cli = Client::new(rocket).unwrap();
 
     // add items
@@ -220,8 +225,38 @@ mod tests {
   }
 
   #[test]
-  fn test_items_served() {
+  #[ignore]
+  fn test_items_served() {  // ** ignored since this test takes a long time to finish
+    let rocket = build_rocket(Some(1));
+    let cli = Client::new(rocket).unwrap();
 
+    // add items
+    let mut res = cli.post("/v1/table/0/items").body(add_req(vec!["ramen", "soba"])).dispatch();
+    assert_eq!(Status::Ok, res.status());
+
+    let mut added_items = match serde_json::from_str::<Vec<Item>>(&res.body_string().unwrap()) {
+      Ok(xs) => xs,
+      Err(_) => { assert!(false); vec![] },
+    };
+    added_items.sort_by(|a, b| a.ready_at.cmp(&b.ready_at));
+
+    // wait until item cooked first is ready
+    let item_cooked_first = added_items[0].clone();
+
+    // item that will be cooked first should be available
+    let res = cli.get(format!("/v1/table/0/item/{}", item_cooked_first.uuid)).dispatch();
+    assert_eq!(Status::Ok, res.status());
+
+    let ms500 = time::Duration::from_millis(500);
+    while Utc::now().timestamp() < item_cooked_first.ready_at {
+      thread::sleep(ms500)
+    }
+    // add an item to trigger deletion of items that has been ready
+    let res = cli.post("/v1/table/0/items").body(add_req(vec!["zen"])).dispatch();
+    assert_eq!(Status::Ok, res.status());
+
+    // item cooked first should no longer be available
+    let res = cli.get(format!("/v1/table/0/item/{}", item_cooked_first.uuid)).dispatch();
+    assert_eq!(Status::BadRequest, res.status());
   }
-
 }
