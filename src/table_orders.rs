@@ -30,16 +30,16 @@ impl TableOrders {
     self.hash.insert(arc_item.borrow().uuid.clone(), arc_item.clone());
   }
 
-  pub fn get(&self, item_id: &str) -> Option<Item> {
-    self.hash.get(item_id).map(|x| TableOrders::unwrap_item(x.clone()))
+  pub fn get(&self, item_uuid: &str) -> Option<Item> {
+    self.hash.get(item_uuid).map(|x| TableOrders::unwrap_item(x.clone()))
   }
 
   pub fn get_all(&self) -> Vec<Item> {
     self.hash.values().map(|x| TableOrders::unwrap_item(x.clone())).collect()
   }
 
-  pub fn remove(&mut self, item_id: &str) -> Option<Item> {
-    if let Some(hash_item) = self.hash.remove(item_id) {
+  pub fn remove(&mut self, item_uuid: &str) -> Option<Item> {
+    if let Some(hash_item) = self.hash.remove(item_uuid) {
       hash_item.borrow_mut().is_removed = true;
       Some(TableOrders::unwrap_item(hash_item))
     } else {

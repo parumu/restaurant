@@ -18,6 +18,7 @@
 - Handles 10+ simultaneous requests
 
 ### Configuration
+Configuration file is `Rocket.toml` in project root directory
 - address = "0.0.0.0"
 - port = 8888
 - num_tables = 100
@@ -34,7 +35,7 @@
 | Query table | GET | /v1/table/[table_id]/items | | Item[] | shows all items of the specified table |
 | Query item | GET | /v1/table/[table_id]/item/[item_id] | | Item | show the number of the specified items of the specified table |
 
-- 1 <= table_id <= num_tables
+- 0 <= table_id < num_tables
 
 ### Architecture
 
