@@ -1,7 +1,7 @@
 use crate::{
   item::Item,
   table_orders::TableOrders,
-  clock::Clock,
+  clock::clock::Clock,
 };
 use std::{
   fmt,
@@ -157,14 +157,10 @@ impl OrderMgr {
 #[cfg(test)]
 mod tests {
   use super::*;
-
-  struct TestClock();
-  impl Clock for TestClock {
-    fn now(&self) -> i64 { 1 }
-  }
+  use crate::clock::arbitrary_clock::ArbitraryClock;
 
   fn get_clock() -> Arc<dyn Clock> {
-    Arc::new(TestClock())
+    Arc::new(ArbitraryClock::new())
   }
 
   #[test]

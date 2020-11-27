@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
 use std::cmp::Ordering;
+use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub struct Item {

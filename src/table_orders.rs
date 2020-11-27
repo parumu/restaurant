@@ -1,11 +1,11 @@
-use std::collections::{
-  hash_map::HashMap,
-  binary_heap::BinaryHeap,
-};
 use crate::item::Item;
 use std::{
   sync::Arc,
   cell::RefCell,
+  collections::{
+    hash_map::HashMap,
+    binary_heap::BinaryHeap,
+  },
 };
 
 pub struct TableOrders {

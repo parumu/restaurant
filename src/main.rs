@@ -1,5 +1,14 @@
 #![feature(decl_macro, proc_macro_hygiene)]
 
+use restaurant::{
+  item::Item,
+  order_mgr::OrderMgr,
+  clock::{
+    clock::Clock,
+    utc_clock::UtcClock,
+  },
+};
+use std::sync::Arc;
 use rocket_contrib::json::Json;
 use rocket::{
   fairing::AdHoc,
@@ -7,13 +16,6 @@ use rocket::{
   response::status::BadRequest,
 };
 use serde::{Serialize, Deserialize};
-use chrono::Utc;
-use restaurant::{
-  item::Item,
-  order_mgr::OrderMgr,
-  clock::Clock,
-};
-use std::sync::Arc;
 
 macro_rules! return_result {
   ($res: expr) => {
@@ -90,14 +92,6 @@ pub fn build_rocket(clock: Arc<dyn Clock>) -> rocket::Rocket {
     }))
 }
 
-struct UtcClock();
-
-impl Clock for UtcClock {
-  fn now(&self) -> i64 {
-    Utc::now().timestamp()
-  }
-}
-
 fn main() {
   let clock = Arc::new(UtcClock());
   build_rocket(clock).launch();
@@ -106,14 +100,17 @@ fn main() {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use std::{
+    sync::atomic::Ordering,
+    sync::Arc,
+  };
+  use restaurant::clock::arbitrary_clock::ArbitraryClock;
   use rocket::{
     local::Client,
     http::Status,
   };
-  use std::{thread, time};
-  use chrono::Utc;
 
-  // curl -X POST -H "Content-Type: application/json" -d '{"items_names":["ramen"] }' http://localhost/v1/table/0/items
+  // curl -X POST -H "Content-Type: application/json" -d '{"item_names":["ramen"] }' http://localhost:8888/v1/table/0/items
 
   fn add_req(item_names: Vec<&str>) -> String {
     let req = AddItemParam {
@@ -122,14 +119,8 @@ mod tests {
     serde_json::to_string(&req).unwrap()
   }
 
-  struct TestClock();
-
-  impl Clock for TestClock {
-    fn now(&self) -> i64 { 1 }
-  }
-
-  fn get_clock() -> Arc<dyn Clock> {
-    Arc::new(TestClock())
+  fn get_clock() -> Arc<ArbitraryClock> {
+    Arc::new(ArbitraryClock::new())
   }
 
   #[test]
@@ -243,9 +234,9 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn test_items_served() {  // ** ignored since this test takes a long time to finish
-    let rocket = build_rocket(get_clock());
+    let clock = get_clock();
+    let rocket = build_rocket(clock.clone());
     let cli = Client::new(rocket).unwrap();
 
     // add items
@@ -261,17 +252,17 @@ mod tests {
     // wait until item cooked first is ready
     let item_cooked_first = added_items[0].clone();
 
-    // item that will be cooked first should be available
+    // item cooked first should be available at this point
     let res = cli.get(format!("/v1/table/0/item/{}", item_cooked_first.uuid)).dispatch();
     assert_eq!(Status::Ok, res.status());
 
-    let ms500 = time::Duration::from_millis(500);
-    while Utc::now().timestamp() < item_cooked_first.ready_at {
-      thread::sleep(ms500)
-    }
-    // add an item to trigger deletion of items that has been ready
-    let res = cli.post("/v1/table/0/items").body(add_req(vec!["zen"])).dispatch();
-    assert_eq!(Status::Ok, res.status());
+    // move the clock to the time when item cooked first is just cooked
+    clock.now.store(item_cooked_first.ready_at, Ordering::Relaxed);
+
+    // // add an item to trigger deletion of items that has been ready
+    // // TODO remove this
+    // let res = cli.post("/v1/table/0/items").body(add_req(vec!["zen"])).dispatch();
+    // assert_eq!(Status::Ok, res.status());
 
     // item cooked first should no longer be available
     let res = cli.get(format!("/v1/table/0/item/{}", item_cooked_first.uuid)).dispatch();
