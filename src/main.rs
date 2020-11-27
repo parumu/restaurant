@@ -7,10 +7,13 @@ use rocket::{
   response::status::BadRequest,
 };
 use serde::{Serialize, Deserialize};
+use chrono::Utc;
 use restaurant::{
   item::Item,
   order_mgr::OrderMgr,
+  clock::Clock,
 };
+use std::sync::Arc;
 
 macro_rules! return_result {
   ($res: expr) => {
@@ -61,7 +64,7 @@ pub fn get_item(
   return_result!(order_mgr.get_item(table_id, &item_uuid))
 }
 
-pub fn build_rocket(one_min_in_src_opt: Option<i64>) -> rocket::Rocket {
+pub fn build_rocket(clock: Arc<dyn Clock>) -> rocket::Rocket {
   rocket::ignite()
     .mount(
       "/v1",
@@ -81,18 +84,23 @@ pub fn build_rocket(one_min_in_src_opt: Option<i64>) -> rocket::Rocket {
       if max_table_items == 0 {
         panic!("max_table_items must be a positive integer")
       }
-      let one_min_in_sec = match one_min_in_src_opt {
-        None => rocket.config().get_int("one_min_in_sec").unwrap() as i64,
-        Some(x) => x,
-      };
-      let order_mgr = OrderMgr::new(num_tables, max_table_items, one_min_in_sec);
+      let order_mgr = OrderMgr::new(num_tables, max_table_items, clock);
 
       Ok(rocket.manage(order_mgr))
     }))
 }
 
+struct UtcClock();
+
+impl Clock for UtcClock {
+  fn now(&self) -> i64 {
+    Utc::now().timestamp()
+  }
+}
+
 fn main() {
-  build_rocket(None).launch();
+  let clock = Arc::new(UtcClock());
+  build_rocket(clock).launch();
 }
 
 #[cfg(test)]
@@ -114,9 +122,19 @@ mod tests {
     serde_json::to_string(&req).unwrap()
   }
 
+  struct TestClock();
+
+  impl Clock for TestClock {
+    fn now(&self) -> i64 { 1 }
+  }
+
+  fn get_clock() -> Arc<dyn Clock> {
+    Arc::new(TestClock())
+  }
+
   #[test]
   fn test_add_item() {
-    let rocket = build_rocket(None);
+    let rocket = build_rocket(get_clock());
     let cli = Client::new(rocket).unwrap();
 
     let res = cli.post("/v1/table/0/items").body(add_req(vec!["ramen"])).dispatch();
@@ -132,7 +150,7 @@ mod tests {
 
   #[test]
   fn test_get_item() {
-    let rocket = build_rocket(None);
+    let rocket = build_rocket(get_clock());
     let cli = Client::new(rocket).unwrap();
 
     // add items
@@ -164,7 +182,7 @@ mod tests {
 
   #[test]
   fn test_get_all_items() {
-    let rocket = build_rocket(None);
+    let rocket = build_rocket(get_clock());
     let cli = Client::new(rocket).unwrap();
 
     // add items
@@ -195,7 +213,7 @@ mod tests {
 
   #[test]
   fn test_remove_item() {
-    let rocket = build_rocket(None);
+    let rocket = build_rocket(get_clock());
     let cli = Client::new(rocket).unwrap();
 
     // add items
@@ -227,7 +245,7 @@ mod tests {
   #[test]
   #[ignore]
   fn test_items_served() {  // ** ignored since this test takes a long time to finish
-    let rocket = build_rocket(Some(1));
+    let rocket = build_rocket(get_clock());
     let cli = Client::new(rocket).unwrap();
 
     // add items

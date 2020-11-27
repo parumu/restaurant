@@ -5,7 +5,6 @@ address = "0.0.0.0"
 port = 8888
 num_tables = 100
 max_table_items = 10
-one_min_in_sec = 60
 
 [development]
 log = "normal"
@@ -13,4 +12,3 @@ address = "0.0.0.0"
 port = 8888
 num_tables = 100
 max_table_items = 10
-one_min_in_sec = 1

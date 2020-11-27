@@ -23,7 +23,6 @@ Configuration file is `Rocket.toml` in project root directory
 - port = 8888
 - num_tables = 100
 - max_table_items = 10
-- one_min_in_sec = 60
 - log = "normal" // rocket log level - "normal", "debug", or "critical"
 - secret_key = [a 256-bit base64 encoded string] // rocket secret_key. required for production
 
