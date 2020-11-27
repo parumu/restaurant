@@ -131,7 +131,7 @@ impl OrderMgr {
     let orders = orders_rwl.read().unwrap();  // TODO handle error case
 
     if let Some(item) = orders.get(item_uuid) {
-      info!("Got item {} for table {}", item_uuid, table_id);
+      info!("Got item {} from table {}", item_uuid, table_id);
       Ok(item)
     } else {
       Err(Errors::ItemNotFound)
@@ -146,7 +146,7 @@ impl OrderMgr {
     let orders = orders_rwl.read().unwrap();  // TODO handle error
 
     let items = orders.get_all();
-    info!("Got all {} items for table {}", items.len(), table_id);
+    info!("Got all {} items from table {}", items.len(), table_id);
 
     Ok(items)
   }
