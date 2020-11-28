@@ -86,11 +86,14 @@ Configuration file is `Rocket.toml` in project root directory
 - Assumes that the set of tables to be a finite set (at least 100)
 
 ## Required environment
-- Nightly Rust
+- nightly rust e.g.
+```
+$ rustup install nightly
+$ rustup default nightly
+```
 
 ## How to build
 ### Cargo
-1. install nightly version of Rust with `rustup`
 ```
 $ cd [project root]
 $ cargo build

@@ -138,7 +138,7 @@ mod tests {
 
     // bad table id should fail
     let res = cli.post("/v1/table/100/items").body(add_req(vec!["apple", "orange"])).dispatch();
-    assert_eq!(Status::BadRequest, res.status());
+    assert_eq!(Status::NotAcceptable, res.status());
   }
 
   #[test]
@@ -225,7 +225,7 @@ mod tests {
 
     // ramen is no longer available
     let res = cli.get(format!("/v1/table/0/item/{}", added_items[0].uuid)).dispatch();
-    assert_eq!(Status::BadRequest, res.status());
+    assert_eq!(Status::NotFound, res.status());
 
     // remove soba and tamago
     let res = cli.delete(format!("/v1/table/0/item/{}", added_items[1].uuid)).dispatch();
@@ -263,6 +263,6 @@ mod tests {
 
     // item cooked first should no longer be available
     let res = cli.get(format!("/v1/table/0/item/{}", item_cooked_first.uuid)).dispatch();
-    assert_eq!(Status::BadRequest, res.status());
+    assert_eq!(Status::NotFound, res.status());
   }
 }
