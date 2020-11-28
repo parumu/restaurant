@@ -1,18 +1,5 @@
-[package]
-name = "restaurant"
-version = "0.1.0"
-authors = ["parumu"]
-edition = "2018"
-
-[dependencies]
-rocket = "0.4.6"
-rocket_contrib = { version = "0.4.6", default-features = false, features = ["json"] }
-serde_json = "1.0.51"
-serde = { version = "1.0.106", features = ["derive"] }
-log = "0.4"
-chrono = "0.4"
-uuid = { version = "0.8", features = ["serde", "v4"] }
-rand = "0.7"
-
-[dev-dependencies]
-reqwest = { version = "0.10", features = ["json", "blocking"] }
+[workspace]
+members = [
+  "server", 
+  "client",
+]

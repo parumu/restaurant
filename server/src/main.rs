@@ -1,4 +1,4 @@
-use restaurant::{
+use server::{
   clock::utc_clock::UtcClock,
   http_server::build_rocket,
 };
