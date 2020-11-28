@@ -92,20 +92,7 @@ $ rustup install nightly
 $ rustup default nightly
 ```
 
-## How to build
-### Cargo
-```
-$ cd [project root]
-$ cargo build
-```
-
-### Docker
-```
-$ cd [project root]
-$ docker build -t restaurant .
-```
-
-## How to run
+## How to start
 ### Cargo
 ```
 $ cd [project root]

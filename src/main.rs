@@ -113,7 +113,8 @@ mod tests {
   };
 
   // curl -X POST -H "Content-Type: application/json" -d '{"item_names":["ramen"] }' http://localhost:8888/v1/table/0/items
-
+  // curl http://localhost:8888/v1/table/0/items
+  
   fn add_req(item_names: Vec<&str>) -> String {
     let req = AddItemParam {
       item_names: item_names.into_iter().map(|x| x.to_string()).collect(),
