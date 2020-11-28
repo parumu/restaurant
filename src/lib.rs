@@ -4,5 +4,7 @@
 pub mod item;
 pub mod order_mgr;
 pub mod clock;
+pub mod api;
+pub mod http_server;
 
 mod table_orders;

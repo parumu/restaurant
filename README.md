@@ -23,6 +23,7 @@ Configuration file is `Rocket.toml` in project root directory
 - port = 8888
 - num_tables = 100
 - max_table_items = 10
+- one_min_in_sec = 1  // should be 60 for the real scenario
 - log = "normal" // rocket log level - "normal", "debug", or "critical"
 - secret_key = [a 256-bit base64 encoded string] // rocket secret_key. required for production
 
@@ -90,6 +91,16 @@ Configuration file is `Rocket.toml` in project root directory
 ```
 $ rustup install nightly
 $ rustup default nightly
+```
+- openssl
+```
+$ sudo apt install libssl-dev
+
+# dpkg -L libssl-dev | grep lib
+# dpkg -L libssl-dev | grep include
+
+$ export OPENSSL_LIB_DIR=/usr/lib/x86_64-linux-gnu
+$ export OPENSSL_INCLUDE_DIR=/usr/include/openssl
 ```
 
 ## How to start

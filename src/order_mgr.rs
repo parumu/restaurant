@@ -20,19 +20,19 @@ macro_rules! validate_table_id {
   ($table_id: expr, $num_tables: expr) => {
     if $table_id >= $num_tables {
       error!("Valid table id range is 0-{}, but table {} is specifed", $num_tables, $table_id);
-      return Err(Errors::BadTableId($table_id))
+      return Err(Error::BadTableId($table_id))
     }
   };
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum Errors {
+pub enum Error {
   ItemNotFound,
   MaxItemsExceeded,
   BadTableId(usize),
 }
 
-impl fmt::Display for Errors {
+impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(f, "{:?}", self)
   }
@@ -41,6 +41,7 @@ impl fmt::Display for Errors {
 pub struct OrderMgr {
   num_tables: usize,
   max_table_items: usize,
+  one_min_in_sec: i64,
   clock: Arc<dyn Clock>,
   tables: Vec<Mutex<TableOrders>>,
 }
@@ -49,12 +50,14 @@ impl OrderMgr {
   pub fn new(
     num_tables: usize,
     max_table_items: usize,
+    one_min_in_sec: i64,
     clock: Arc<dyn Clock>,
   ) -> OrderMgr {
     let tables = vec_no_clone![Mutex::new(TableOrders::new()); num_tables];
     OrderMgr {
       num_tables,
       max_table_items,
+      one_min_in_sec,
       clock,
       tables,
     }
@@ -69,7 +72,7 @@ impl OrderMgr {
     &self,
     table_id: usize,
     item_names: &Vec<String>
-  ) -> Result<Vec<Item>, Errors> {
+  ) -> Result<Vec<Item>, Error> {
     validate_table_id!(table_id, self.num_tables);
     let now = self.clock.now();
 
@@ -81,7 +84,7 @@ impl OrderMgr {
     // return error if # of items exceeds the limit
     if orders.len() == self.max_table_items {
       error!("Max # of items ({}) reached. Ignoring add request.", self.max_table_items);
-      return Err(Errors::MaxItemsExceeded)
+      return Err(Error::MaxItemsExceeded)
     }
 
     let mut items = vec![];
@@ -89,7 +92,7 @@ impl OrderMgr {
     // create items and add to orders
     let mut rng = thread_rng();
     let created_at = now;
-    let time2cook: i64 = 60 * rng.gen_range(5, 15);
+    let time2cook: i64 = self.one_min_in_sec * rng.gen_range(5, 15);
     let ready_at = created_at + time2cook;
 
     for item_name in item_names {
@@ -108,7 +111,7 @@ impl OrderMgr {
     Ok(items) // return generated items to user
   }
 
-  pub fn remove_item(&self, table_id: usize, item_uuid: &str) -> Result<(), Errors> {
+  pub fn remove_item(&self, table_id: usize, item_uuid: &str) -> Result<(), Error> {
     validate_table_id!(table_id, self.num_tables);
 
     // get orders for the table
@@ -121,11 +124,11 @@ impl OrderMgr {
       Ok(())
     } else {
       warn!("Item {} not found", item_uuid);
-      Err(Errors::ItemNotFound)
+      Err(Error::ItemNotFound)
     }
   }
 
-  pub fn get_item(&self, table_id: usize, item_uuid: &str) -> Result<Item, Errors> {
+  pub fn get_item(&self, table_id: usize, item_uuid: &str) -> Result<Item, Error> {
     validate_table_id!(table_id, self.num_tables);
 
     // get orders for the table
@@ -137,11 +140,11 @@ impl OrderMgr {
       info!("Got item {} from table {}", item_uuid, table_id);
       Ok(item)
     } else {
-      Err(Errors::ItemNotFound)
+      Err(Error::ItemNotFound)
     }
   }
 
-  pub fn get_all_items(&self, table_id: usize) -> Result<Vec<Item>, Errors> {
+  pub fn get_all_items(&self, table_id: usize) -> Result<Vec<Item>, Error> {
     validate_table_id!(table_id, self.num_tables);
 
     // get orders for the table
@@ -167,7 +170,7 @@ mod tests {
 
   #[test]
   fn test_new() {
-    let om = OrderMgr::new(1, 2, get_clock());
+    let om = OrderMgr::new(1, 2, 1, get_clock());
     assert_eq!(1, om.num_tables);
     assert_eq!(2, om.max_table_items);
   }
@@ -182,10 +185,10 @@ mod tests {
       "pizza".to_string(),
     ];
 
-    let om1 = OrderMgr::new(1, 3, get_clock());
+    let om1 = OrderMgr::new(1, 3, 1, get_clock());
 
     // only valid table id should be 0, and 1 is a bad table id
-    assert_eq!(Err(Errors::BadTableId(1)), om1.add_items(1, &items_1));
+    assert_eq!(Err(Error::BadTableId(1)), om1.add_items(1, &items_1));
 
     // add a single item
     if let Ok(xs) = om1.add_items(0, &items_1) {
@@ -222,12 +225,12 @@ mod tests {
     }
 
     // table is full. adding another item should get MaxItemExceeded
-    assert_eq!(Err(Errors::MaxItemsExceeded), om1.add_items(0, &items_1));
+    assert_eq!(Err(Error::MaxItemsExceeded), om1.add_items(0, &items_1));
 
-    let om2 = OrderMgr::new(2, 2, get_clock());
+    let om2 = OrderMgr::new(2, 2, 1, get_clock());
 
     // valid table ids are 0 and 1. 2 shoulf be a bad table id
-    assert_eq!(Err(Errors::BadTableId(2)), om1.add_items(2, &items_1));
+    assert_eq!(Err(Error::BadTableId(2)), om1.add_items(2, &items_1));
 
     // add a single item to table 0
     if let Ok(xs) = om2.add_items(0, &items_1) {
@@ -279,7 +282,7 @@ mod tests {
       "bbq".to_string(),
     ];
 
-    let om = OrderMgr::new(2, 3, get_clock());
+    let om = OrderMgr::new(2, 3, 1, get_clock());
 
     // add 1 items to table 0 and check that the 1 item is returned
     if let Err(_) = om.add_items(0, &items_1) {
@@ -408,10 +411,10 @@ mod tests {
       "bbq".to_string(),
     ];
 
-    let om = OrderMgr::new(2, 3, get_clock());
+    let om = OrderMgr::new(2, 3, 1, get_clock());
 
     // no item has been added to table 0. should be ItemNotFound
-    assert_eq!(Err(Errors::ItemNotFound), om.get_item(0, "bad uuid"));
+    assert_eq!(Err(Error::ItemNotFound), om.get_item(0, "bad uuid"));
 
     let uuids3 = match om.add_items(0, &items_3) {
       Err(_) => { assert!(false); vec![] },
@@ -419,10 +422,10 @@ mod tests {
     };
 
     // sandwich has not been added to table 0
-    assert_eq!(Err(Errors::ItemNotFound), om.get_item(0, "bad uuid"));
+    assert_eq!(Err(Error::ItemNotFound), om.get_item(0, "bad uuid"));
 
     // not in table 1 either
-    assert_eq!(Err(Errors::ItemNotFound), om.get_item(1, "bad uuid"));
+    assert_eq!(Err(Error::ItemNotFound), om.get_item(1, "bad uuid"));
 
     if let Ok(x) = om.get_item(0, &uuids3[0].uuid) {
       assert_eq!(x.name, "apple");
@@ -469,7 +472,7 @@ mod tests {
       "bbq".to_string(),
     ];
 
-    let om = OrderMgr::new(2, 3, get_clock());
+    let om = OrderMgr::new(2, 3, 1, get_clock());
 
     let uuids3 = match om.add_items(0, &items_3) {
       Err(_) => { assert!(false); vec![] },
@@ -481,14 +484,14 @@ mod tests {
     };
 
     // cannot remove non-existing item from table 0
-    assert_eq!(Err(Errors::ItemNotFound), om.remove_item(0, "bad uuid"));
+    assert_eq!(Err(Error::ItemNotFound), om.remove_item(0, "bad uuid"));
 
     // should be able to remove exsiting item from table 0
     if let Err(_) = om.remove_item(0, &uuids3[0].uuid) {
       assert!(false);
     }
     // cannot remove removed item from table 0
-    assert_eq!(Err(Errors::ItemNotFound), om.remove_item(0, &uuids3[0].uuid));
+    assert_eq!(Err(Error::ItemNotFound), om.remove_item(0, &uuids3[0].uuid));
 
     // items can be removed from table 0 and 1 in arbitrary order
     if let Err(_) = om.remove_item(0, &uuids3[2].uuid) {
