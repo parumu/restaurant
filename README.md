@@ -29,14 +29,26 @@ Configuration file is `Rocket.toml` in project root directory
 ### API
 | Tag | Method | Endpoint | Parameters | Response | Note |
 |-----|--------|----------|------------|----------|------|
-| Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Ok Item[] | time2cook is randomly assigned on server side. returns an id associated with the added items |
-| Remove | DELETE | /v1/table/[table_id]/item/[item_id] | | 200: Ok | note |
-| Query table | GET | /v1/table/[table_id]/items | | Item[] | shows all items of the specified table |
-| Query item | GET | /v1/table/[table_id]/item/[item_id] | | Item | show the number of the specified items of the specified table |
+| Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Ok(Item[]), 429: TooManyItems (max item exceeded), 406: NotAcceptable (bad table id) | time2cook is randomly assigned on server side. returns an id associated with the added items |
+| Remove | DELETE | /v1/table/[table_id]/item/[item_id] | | 200: Ok, 404: NotFound, 406: NotAcceptable | note |
+| Query table | GET | /v1/table/[table_id]/items | | 200: Ok(Item[]), 406: NotAcceptable | shows all items of the specified table |
+| Query item | GET | /v1/table/[table_id]/item/[item_id] | | 200: Ok(Item), 406: NotAcceptable | show the number of the specified items of the specified table |
 
+#### Note
 - 0 <= table_id < num_tables
+- Item object schema:
+    ```
+    {
+      uuid: string,
+      name: string,
+      table_id: number,
+      created_at: number,
+      ready_at: number,
+      pub is_removed: boolean,
+    }
+    ```
 
-### Specification changed
+### Specification change
 - Changed to update active orders with query table/item requests as triggers as well.
   Originally using RwLock so that query requests don't interface each other.
   Replaced that with Mutex so that query requests reflect actual state of orders.

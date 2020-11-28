@@ -30,7 +30,6 @@ pub enum Errors {
   ItemNotFound,
   MaxItemsExceeded,
   BadTableId(usize),
-  GenericError,
 }
 
 impl fmt::Display for Errors {

@@ -2,7 +2,7 @@
 
 use restaurant::{
   item::Item,
-  order_mgr::OrderMgr,
+  order_mgr::{OrderMgr, Errors},
   clock::{
     clock::Clock,
     utc_clock::UtcClock,
@@ -13,7 +13,7 @@ use rocket_contrib::json::Json;
 use rocket::{
   fairing::AdHoc,
   {routes, post, get, delete, State},
-  response::status::BadRequest,
+  http::Status,
 };
 use serde::{Serialize, Deserialize};
 
@@ -21,7 +21,9 @@ macro_rules! return_result {
   ($res: expr) => {
     match $res {
       Ok(x) => Ok(Json(x)),
-      Err(e) => Err(BadRequest(Some(e.to_string()))), // TODO return better return code for not found etc
+      Err(Errors::ItemNotFound) => Err(Status::NotFound),
+      Err(Errors::MaxItemsExceeded) => Err(Status::TooManyRequests),
+      Err(Errors::BadTableId(_id)) => Err(Status::NotAcceptable),
     }
   };
 }
@@ -36,7 +38,7 @@ pub fn add_items(
   table_id: usize,
   req: Json<AddItemParam>,
   order_mgr: State<OrderMgr>,
-) -> Result<Json<Vec<Item>>, BadRequest<String>> {
+) -> Result<Json<Vec<Item>>, Status> {
   return_result!(order_mgr.add_items(table_id, &req.item_names))
 }
 
@@ -45,7 +47,7 @@ pub fn remove_item(
   table_id: usize,
   item_uuid: String,
   order_mgr: State<OrderMgr>,
-) -> Result<Json<()>, BadRequest<String>> {
+) -> Result<Json<()>, Status> {
   return_result!(order_mgr.remove_item(table_id, &item_uuid))
 }
 
@@ -53,7 +55,7 @@ pub fn remove_item(
 pub fn get_all_items(
   table_id: usize,
   order_mgr: State<OrderMgr>,
-) -> Result<Json<Vec<Item>>, BadRequest<String>> {
+) -> Result<Json<Vec<Item>>, Status> {
   return_result!(order_mgr.get_all_items(table_id))
 }
 
@@ -62,7 +64,7 @@ pub fn get_item(
   table_id: usize,
   item_uuid: String,
   order_mgr: State<OrderMgr>,
-) -> Result<Json<Item>, BadRequest<String>> {
+) -> Result<Json<Item>, Status> {
   return_result!(order_mgr.get_item(table_id, &item_uuid))
 }
 
@@ -234,7 +236,7 @@ mod tests {
   }
 
   #[test]
-  fn test_items_served() {  // ** ignored since this test takes a long time to finish
+  fn test_items_served() {
     let clock = get_clock();
     let rocket = build_rocket(clock.clone());
     let cli = Client::new(rocket).unwrap();
