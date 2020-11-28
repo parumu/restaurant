@@ -259,11 +259,6 @@ mod tests {
     // move the clock to the time when item cooked first is just cooked
     clock.now.store(item_cooked_first.ready_at, Ordering::Relaxed);
 
-    // // add an item to trigger deletion of items that has been ready
-    // // TODO remove this
-    // let res = cli.post("/v1/table/0/items").body(add_req(vec!["zen"])).dispatch();
-    // assert_eq!(Status::Ok, res.status());
-
     // item cooked first should no longer be available
     let res = cli.get(format!("/v1/table/0/item/{}", item_cooked_first.uuid)).dispatch();
     assert_eq!(Status::BadRequest, res.status());

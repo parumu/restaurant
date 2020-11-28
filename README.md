@@ -36,6 +36,12 @@ Configuration file is `Rocket.toml` in project root directory
 
 - 0 <= table_id < num_tables
 
+### Specification changed
+- Changed to update active orders with query table/item requests as triggers as well.
+  Originally using RwLock so that query requests don't interface each other.
+  Replaced that with Mutex so that query requests reflect actual state of orders.
+  Because of this change, query request became slower.
+
 ### Architecture
 
 ### Data structure
@@ -59,7 +65,7 @@ Configuration file is `Rocket.toml` in project root directory
 #### Remaining issues
 1. `RefCell` is used in multi threaded context.
 2. Manually implementing `Sync` and `Send` traits to `TableOrders` to use `RefCell`.
-   For thread safely, `RwLock` is used to guard all accesses to `Item` in `OrderMgr`.
+   For thread safely, `Mutex` is used to guard all accesses to `Item` in `OrderMgr`.
 3. To unwrap `Arc<RefCell<Item>>` to `Item`, new `Item` is manually created.
 
 ## Client

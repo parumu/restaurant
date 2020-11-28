@@ -5,7 +5,7 @@ use crate::{
 };
 use std::{
   fmt,
-  sync::{Arc, RwLock},
+  sync::{Arc, Mutex},
 };
 use uuid::Uuid;
 use rand::{thread_rng, Rng};
@@ -43,7 +43,7 @@ pub struct OrderMgr {
   num_tables: usize,
   max_table_items: usize,
   clock: Arc<dyn Clock>,
-  tables: Vec<RwLock<TableOrders>>,
+  tables: Vec<Mutex<TableOrders>>,
 }
 
 impl OrderMgr {
@@ -52,13 +52,18 @@ impl OrderMgr {
     max_table_items: usize,
     clock: Arc<dyn Clock>,
   ) -> OrderMgr {
-    let tables = vec_no_clone![RwLock::new(TableOrders::new()); num_tables];
+    let tables = vec_no_clone![Mutex::new(TableOrders::new()); num_tables];
     OrderMgr {
       num_tables,
       max_table_items,
       clock,
       tables,
     }
+  }
+
+  #[inline]
+  fn remove_cooked_items_from_orders(&self, orders: &mut TableOrders) {
+    orders.remove_before_eq_threshold(self.clock.now());
   }
 
   pub fn add_items(
@@ -70,11 +75,9 @@ impl OrderMgr {
     let now = self.clock.now();
 
     // get orders for the table
-    let orders_rwl = &self.tables[table_id];
-    let mut orders = orders_rwl.write().unwrap();  // TODO handle error case
-
-    // remove cooked items from TableOreders of the table
-    orders.remove_before_eq_threshold(now);
+    let orders_mut = &self.tables[table_id];
+    let mut orders = orders_mut.lock().unwrap();
+    self.remove_cooked_items_from_orders(&mut orders);
 
     // return error if # of items exceeds the limit
     if orders.len() == self.max_table_items {
@@ -110,11 +113,9 @@ impl OrderMgr {
     validate_table_id!(table_id, self.num_tables);
 
     // get orders for the table
-    let orders_rwl = &self.tables[table_id];
-    let mut orders = orders_rwl.write().unwrap();  // TODO handle error case
-
-    // remove cooked items from TableOreders of the table
-    orders.remove_before_eq_threshold(self.clock.now());
+    let orders_mut = &self.tables[table_id];
+    let mut orders = orders_mut.lock().unwrap();
+    self.remove_cooked_items_from_orders(&mut orders);
 
     if let Some(x) = orders.remove(item_uuid) {
       info!("Removed item {:?} from table {}", x, table_id);
@@ -129,8 +130,9 @@ impl OrderMgr {
     validate_table_id!(table_id, self.num_tables);
 
     // get orders for the table
-    let orders_rwl = &self.tables[table_id];
-    let orders = orders_rwl.read().unwrap();  // TODO handle error case
+    let orders_mut = &self.tables[table_id];
+    let mut orders = orders_mut.lock().unwrap();
+    self.remove_cooked_items_from_orders(&mut orders);
 
     if let Some(item) = orders.get(item_uuid) {
       info!("Got item {} from table {}", item_uuid, table_id);
@@ -144,8 +146,9 @@ impl OrderMgr {
     validate_table_id!(table_id, self.num_tables);
 
     // get orders for the table
-    let orders_rwl = &self.tables[table_id];
-    let orders = orders_rwl.read().unwrap();  // TODO handle error
+    let orders_mut = &self.tables[table_id];
+    let mut orders = orders_mut.lock().unwrap();
+    self.remove_cooked_items_from_orders(&mut orders);
 
     let items = orders.get_all();
     info!("Got all {} items from table {}", items.len(), table_id);
