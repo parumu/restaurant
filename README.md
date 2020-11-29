@@ -163,7 +163,7 @@ Rocket HTTP Server -> OrderMgr
 ### Cargo
 ```
 $ cd [Project root]
-$ cargo run --bin client 50  # run with 10 client threads
+$ cargo run --bin client 10  # run with 10 client threads
 ```
 
 ## Expected output
