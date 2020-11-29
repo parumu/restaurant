@@ -27,10 +27,10 @@ $ cd [Project root]
 $ cargo run --bin application
 ```
 
-### Docker
+#### Docker
 ```
 $ cd [Project root]
-$ docker-compose up
+$ docker-compose up --build
 ```
 
 ### Configuration
@@ -159,8 +159,7 @@ Rocket HTTP Server -> OrderMgr
 1. Very frequently client requests fail with `hyper::Error(IncompleteMessage): connection closed before message completed`.
    No error observed on the application side.
 
-## How to build/run
-### Cargo
+### How to build/run
 ```
 $ cd [Project root]
 $ cargo run --bin client 10  # run with 10 client threads
