@@ -92,7 +92,7 @@ Configuration file is `Rocket.toml` in project root directory
 $ rustup install nightly
 $ rustup default nightly
 ```
-- openssl
+- On Linux, OpenSSL 1.0.1, 1.0.2, 1.1.0, or 1.1.1 with headers
 ```
 $ sudo apt install libssl-dev
 
@@ -107,7 +107,7 @@ $ export OPENSSL_INCLUDE_DIR=/usr/include/openssl
 ### Cargo
 ```
 $ cd [project root]
-$ cargo run --release
+$ cargo run --bin application --release
 ```
 
 ### Docker

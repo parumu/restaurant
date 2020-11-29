@@ -1,4 +1,4 @@
-use server::{
+use application::{
   clock::utc_clock::UtcClock,
   http_server::build_rocket,
 };
