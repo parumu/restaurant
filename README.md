@@ -117,7 +117,8 @@ Rocket HTTP Server -> OrderMgr
 - Getting all items is O(n) since it scans and gets values in hash table
 
 #### Unresolved issues
-1. `RefCell` is used in multi threaded context.
+1. `RefCell` is used in multi threaded context and the lock is done at `TableOrders`
+   level for all operations because of that.
    - Each `Item` object needs to be owned by `BinaryHeap` and `HashMap` in `TableOrders`.
      A wrapper type that does reference counting GC is needed.
    - Since `TableOrders` is used by `OrderMgr` and `OrderMgr` runs on multiple threads,
@@ -131,10 +132,11 @@ Rocket HTTP Server -> OrderMgr
      But `Mutex` cannnot be used since `BinaryHeap` requires `Ord` to the contained type,
      but `Mutex` doesn't implement `Ord`. So, `RefCell` needs to be used.
 
-2. To use `RefCell`, manually implemented `Sync` and `Send` traits to `TableOrders`,
-   and locking `TableOrders` for all operations although read lock should suffice for queries.
+   - To use `RefCell`, `Sync` and `Send` unsafe traits are implemented to `TableOrders`.
+     `TableOrders` is locked for for all operations including queries although
+     read lock should suffice for queries.
 
-3. To unwrap `Arc<RefCell<Item>>` to `Item`, new `Item` is manually created.
+2. To unwrap `Arc<RefCell<Item>>` to `Item`, new `Item` is manually created.
 
 ### Note
 - Changed to update the list of items being cooked not only by add and remove requests, but also with query item and query all items requests.
