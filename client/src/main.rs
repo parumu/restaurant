@@ -89,13 +89,13 @@ impl Client {
   }
 }
 
-fn start_client(id: usize, num_clients: usize) {
+fn start_client(id: usize, num_tables: usize) {
   log::info!("{}: Started", id);
   let cli = Client::new(id);
   let mut rng = thread_rng();
 
   loop {
-    let table_id: usize = rng.gen_range(0, num_clients);
+    let table_id: usize = rng.gen_range(0, num_tables);
     let items2add = vec![format!("{}-dish", id)];
 
     match cli.add_item(id, items2add.clone()) {
@@ -140,7 +140,9 @@ fn main() {
   };
   info!("# of clients: {}", num_clients);
 
-  let hs: Vec<JoinHandle<()>> = (0..num_clients).map(|i| {
+  let num_tables = 100;
+
+  let hs: Vec<JoinHandle<()>> = (0..num_tables).map(|i| {
     thread::spawn(move || start_client(i, num_clients))
   }).collect();
 
