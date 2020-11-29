@@ -1,6 +1,6 @@
 [production]
 secret_key = "2zau6Td7HmXhWmrblS8q/e/Fqhb+IZPlZ8tNO07hhQI="
-log = "normal"
+log = "critical"
 address = "0.0.0.0"
 port = 8888
 num_tables = 100

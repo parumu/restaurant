@@ -76,6 +76,8 @@ Configuration file is `Rocket.toml` in project root directory
   needs to hold `Item` but `Mutex` doesn't implement `Ord`.
 
 #### Remaining issues
+1. Many requests from client fails with `hyper::Error(IncompleteMessage)` on the client side.
+   There is no error on the server side.
 1. `RefCell` is used in multi threaded context.
 2. Manually implementing `Sync` and `Send` traits to `TableOrders` to use `RefCell`.
    For thread safely, `Mutex` is used to guard all accesses to `Item` in `OrderMgr`.
@@ -107,7 +109,8 @@ $ export OPENSSL_INCLUDE_DIR=/usr/include/openssl
 ### Cargo
 ```
 $ cd [project root]
-$ cargo run --bin application --release
+$ cargo run --bin application
+$ cargo run --bin client 50   # 50 is # of clients
 ```
 
 ### Docker

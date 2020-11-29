@@ -53,50 +53,26 @@ impl Client {
 
   pub fn get_item(&self, table_id: usize, uuid: &str) -> Result<Item, reqwest::Error> {
     let url = format!("{}/table/{}/item/{}", self.base_url, table_id, uuid);
-    match self.http_client
+    self.http_client
       .get(&url)
       .send()
-    {
-      Ok(res) => {
-        res.text().map(|s| serde_json::from_str::<Item>(&s).unwrap())
-      },
-      Err(err) => {
-        error!("Failed to get item {} of table {}: {:?}", uuid, table_id, err);
-        Err(err)
-      }
-    }
+      .and_then(|res| res.text().map(|s| serde_json::from_str::<Item>(&s).unwrap()))
   }
 
   pub fn get_all_items(&self, table_id: usize) -> Result<Vec<Item>, reqwest::Error> {
     let url = format!("{}/table/{}/items", self.base_url, table_id);
-    match self.http_client
+    self.http_client
       .get(&url)
       .send()
-    {
-      Ok(res) => {
-        res.text().map(|s| serde_json::from_str::<Vec<Item>>(&s).unwrap())
-      },
-      Err(err) => {
-        error!("Failed to get all items of table {}: {:?}", table_id, err);
-        Err(err)
-      }
-    }
+      .and_then(|res| res.text().map(|s| serde_json::from_str::<Vec<Item>>(&s).unwrap()))
   }
 
   pub fn remove_item(&self, table_id: usize, uuid: &str) -> Result<(), reqwest::Error> {
     let url = format!("{}/table/{}/item/{}", self.base_url, table_id, uuid);
-    match self.http_client
+    self.http_client
       .delete(&url)
       .send()
-    {
-      Ok(res) => {
-        res.text().map(|s| serde_json::from_str::<()>(&s).unwrap())
-      },
-      Err(err) => {
-        error!("Failed to remove item {:?} from table {}: {:?}", uuid, table_id, err);
-        Err(err)
-      }
-    }
+      .and_then(|res| res.text().map(|s| serde_json::from_str::<()>(&s).unwrap()))
   }
 
   pub fn add_item(&self, table_id: usize, item_names: Vec<String>) -> Result<Vec<Item>, reqwest::Error> {
@@ -105,20 +81,11 @@ impl Client {
       item_names: item_names.clone(),
     };
     let req_json = serde_json::to_string(&req).unwrap();
-    match self.http_client
+    self.http_client
       .post(&url)
       .body(req_json)
       .send()
-    {
-      Ok(res) => {
-        res.text().map(|s| serde_json::from_str::<Vec<Item>>(&s).unwrap())
-
-      },
-      Err(err) => {
-        error!("Failed to add item {:?} to table {}: {:?}", item_names, table_id, err);
-        Err(err)
-      }
-    }
+      .and_then(|res| res.text().map(|s| serde_json::from_str::<Vec<Item>>(&s).unwrap()))
   }
 }
 
@@ -129,20 +96,20 @@ fn start_client(id: usize, num_clients: usize) {
 
   loop {
     let table_id: usize = rng.gen_range(0, num_clients);
-
     let items2add = vec![format!("{}-dish", id)];
+
     match cli.add_item(id, items2add.clone()) {
       Ok(items) => {
-        info!("{}: Added items {:?} to table {}", id, items, table_id);
+        //info!("{}: Added items {:?} to table {}", id, items, table_id);
         let uuid = &items[0].uuid;
 
         match cli.get_item(id, uuid) {
-          Ok(item) => info!("{}: Got item {} of table {}: {:?}", id, uuid, table_id, item),
+          Ok(_item) => {}, //info!("{}: Got item {} of table {}: {:?}", id, uuid, table_id, item),
           Err(err) => error!("{}: Failed to get item {} of table {}: {:?}", id, uuid, table_id, err),
         }
 
         match cli.get_all_items(id) {
-          Ok(items) => info!("{}: Got all items of table {}: {:?}", id, table_id, items),
+          Ok(_items) => {}, //info!("{}: Got all items of table {}: {:?}", id, table_id, items),
           Err(err) => error!("{}: Failed to get all items of table {}: {:?}", id, table_id, err),
         }
 
