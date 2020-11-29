@@ -38,11 +38,11 @@ $ docker-compose up --build
 
 | name | description |
 |------|-------------|
-| address | Address that the application listens to|
-| port | Port that the application listens to|
-| num_tables | # of tables in the restaurant|
-| max_table_items | Maximum # of items that a table can have|
-| one_min_in_sec  | # of seconds that constitutes 1 minute|
+| address | Address that the application listens to |
+| port | Port that the application listens to |
+| num_tables | # of tables in the restaurant |
+| max_table_items | Maximum # of outstanding orders that a table can have |
+| one_min_in_sec  | # of seconds that constitutes 1 minute |
 | log | Rocket log level. Valid values are: "normal", "debug", or "critical" |
 | secret_key | Rocket secret_key that is a 256-bit base64 encoded string. Required for production |
 
@@ -50,9 +50,9 @@ $ docker-compose up --build
 | Tag | Method | Endpoint | Parameters | Response | Description |
 |-----|--------|----------|------------|----------|------|
 | Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Ok(Item[]), 429: TooManyItems (max item exceeded), 406: NotAcceptable (bad table id) | Adds items w/ specified names to the specified table and returns added items |
-| Remove | DELETE | /v1/table/[table_id]/item/[uuid] | | 200: Ok, 404: NotFound, 406: NotAcceptable | Removes an item with the specified UUID |
+| Remove | DELETE | /v1/table/[table_id]/item/[uuid] | | 200: Ok, 404: NotFound, 406: NotAcceptable | Removes an item of the specified UUID |
 | Query table | GET | /v1/table/[table_id]/items | | 200: Ok(Item[]), 406: NotAcceptable | Returns all items of the specified table that is being cooked |
-| Query item | GET | /v1/table/[table_id]/item/[uuid] | | 200: Ok(Item), 406: NotAcceptable | Returns an item with the specified UUID |
+| Query item | GET | /v1/table/[table_id]/item/[uuid] | | 200: Ok(Item), 406: NotAcceptable | Returns an item of the specified UUID |
 
 #### Note
 - 0 <= `table_id` < num_tables
@@ -79,7 +79,7 @@ Rocket HTTP Server -> OrderMgr
 ### OrderMgr
 - Maintains outstanding orders of each table with `TableOrder`
 - Stores `TableOrder`s in a `Vector`
-- `TableOrder` maintains a priority queue of outstanding orders with minimum
+- `TableOrder` maintains a priority queue of outstanding orders with the order with minimum
   `ready_at` at the root
 - `TableOrder` also maintains a hash table of outstanding orders with order `UUID`
   as the key and the `Item` (order) as the value
@@ -111,10 +111,10 @@ Rocket HTTP Server -> OrderMgr
 - Popping out an item is O(log n) due to using BinaryHeap
 - Removing an item is O(1):
   - Removing from hash table is O(1)
-  - From priority queue, the item is not removed, but marked as removed, so it's also O(1)
-    The item will stays in priority queue until it's popped out
+  - An item is not removed from priority queue, but marked as removed. This is also O(1).
+    The item will stay in priority queue until it's popped out
 - Getting an item is O(1) since the item is obtained from hash table
-- Getting all items is O(n) since it scans and gets values in hash table
+- Getting all items is O(n) since it gets all values from hash table
 
 #### Unresolved issues
 1. `RefCell` is used in multi threaded context and the lock is done at `TableOrders`

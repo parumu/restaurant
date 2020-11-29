@@ -140,7 +140,7 @@ fn main() {
   };
   info!("# of clients: {}", num_clients);
 
-  let num_tables = 100;
+  let num_tables = 5;
 
   let hs: Vec<JoinHandle<()>> = (0..num_tables).map(|i| {
     thread::spawn(move || start_client(i, num_clients))
