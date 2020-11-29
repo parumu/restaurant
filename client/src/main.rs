@@ -15,6 +15,7 @@ use log::{
   warn,
   LevelFilter,
 };
+use rand::{thread_rng, Rng};
 
 /*
   curl -X POST -H "Content-Type: application/json" -d '{"item_names":["ramen"] }' http://localhost:8888/v1/table/0/items
@@ -46,7 +47,6 @@ impl Client {
       if let Ok(_) = self.http_client.get(&url).send() {
         break;
       }
-      println!(".");
       thread::sleep(Duration::from_millis(500));
     }
   }
@@ -122,14 +122,15 @@ impl Client {
   }
 }
 
-fn start_client(id: usize) {
+fn start_client(id: usize, num_clients: usize) {
   log::info!("{}: Started", id);
   let cli = Client::new(id);
-  let table_id = id;
+  let mut rng = thread_rng();
 
   loop {
-    // add 1 item to table 0
-    let items2add = vec![format!("{}-ramen", id)];
+    let table_id: usize = rng.gen_range(0, num_clients);
+
+    let items2add = vec![format!("{}-dish", id)];
     match cli.add_item(id, items2add.clone()) {
       Ok(items) => {
         info!("{}: Added items {:?} to table {}", id, items, table_id);
@@ -165,10 +166,15 @@ fn start_client(id: usize) {
 fn main() {
   SimpleLogger::new().with_level(LevelFilter::Info).init().unwrap();
 
-  let num_clients = 5;
+  // Get # of clients from the 1st command line arg. Set 10 if missing
+  let args: Vec<String> = std::env::args().collect();
+  let num_clients = if args.len() < 2 { 10 } else {
+    args[1].parse::<usize>().unwrap()
+  };
+  info!("# of clients: {}", num_clients);
 
   let hs: Vec<JoinHandle<()>> = (0..num_clients).map(|i| {
-    thread::spawn(move || start_client(i))
+    thread::spawn(move || start_client(i, num_clients))
   }).collect();
 
   for h in hs {
