@@ -77,6 +77,7 @@ async function startClientFor(numTables, clientId) {
       } else {
         logError(error)
       }
+      
     }
   }
 }
