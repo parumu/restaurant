@@ -142,27 +142,49 @@ Rocket HTTP Server -> OrderMgr
 - Changed to update the list of items being cooked not only by add and remove requests, but also with query item and query all items requests.
 
 ## Client
-- Runs specified number of client threads
-- The number of tables is hardcoded to 100
-- Endlessly executes below sequence on each client thread:
+Since I'm new to async in Rust and it turned out that Reqwest blocking client doesn't work well in highly multi-threaded environment, 2 clients were prepared:
+- Barely working Rust-based client written with minimum async knowledge
+- Fully working Node-based client
+
+### Test sequence
+- Both clients endlessly execute below sequence on client threads:
   1. Select a table
   2. Add 1 item to the table
   3. Get the added item from the table
   4. Get all items of the table
   5. Remove the added item from the table
 
-### Requirements
+### Rust-based client
+- Runs 10 client threads
+- The number of tables is hardcoded to 100
+
+#### Requirements
 - On Linux, `reqwest` requires OpenSSL 1.0.1, 1.0.2, 1.1.0, or 1.1.1 with headers
   - `OPENSSL_LIB_DIR` and `OPENSSL_INCLUDE_DIR` need to be exported
 
 #### Unresolved issues
-1. Very frequently client requests fail with `hyper::Error(IncompleteMessage): connection closed before message completed`.
-   No error observed on the application side.
+1. Client requests often fail with `hyper::Error(IncompleteMessage): connection closed before message completed`.
+   This seems to be HTTP client issue.
+2. Unable to find a random number generator that works inside async. So table is selected based on client ID and the current timestamp.
+3. Unable to find a way to execute vector of spawned async function. Using `futures::future::join_all` makes all http request fail w/ `reqwest::Error { kind: Request, url: Url { scheme: "http", host: Some(Domain("localhost")), port: Some(8888), ..., query: None, fragment: None }, source: hyper::Error(Connect, ConnectError("dns error", Custom { kind: Interrupted, error: JoinError::Cancelled })) }`
 
-### How to build/run
+#### How to build/run
 ```
 $ cd [Project root]
-$ cargo run --bin client -- -t 100 -c 10  # run with 100 tables and 10 client threads
+$ cargo run --bin client
+```
+
+### Node-based client
+
+#### Requirements
+- npm
+- node.js
+
+#### How to build/run
+```
+$ cd [Project root]/node-client
+$ npm install
+$ npm start
 ```
 
 ## Expected output

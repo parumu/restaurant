@@ -4,7 +4,7 @@ use crate::{
   clock::{
     clock::Clock,
   },
-  api::AddItemParam,
+  api::AddItemsParam,
 };
 use std::sync::Arc;
 use rocket_contrib::json::Json;
@@ -28,7 +28,7 @@ macro_rules! return_result {
 #[post("/table/<table_id>/items", data = "<req>")]
 pub fn add_items(
   table_id: usize,
-  req: Json<AddItemParam>,
+  req: Json<AddItemsParam>,
   order_mgr: State<OrderMgr>,
 ) -> Result<Json<Vec<Item>>, Status> {
   return_result!(order_mgr.add_items(table_id, &req.item_names))
@@ -104,7 +104,7 @@ mod tests {
   };
 
   fn add_req(item_names: Vec<&str>) -> String {
-    let req = AddItemParam {
+    let req = AddItemsParam {
       item_names: item_names.into_iter().map(|x| x.to_string()).collect(),
     };
     serde_json::to_string(&req).unwrap()

@@ -1,14 +1,9 @@
 use application::{
   item::Item,
-  api::AddItemParam,
+  api::AddItemsParam,
 };
-use std::{
-  thread,
-  thread::JoinHandle,
-  time::Duration,
-};
+use std::{thread, time::Duration};
 use reqwest::{
-  blocking::Client as HttpClient,
   StatusCode,
 };
 use simple_logger::SimpleLogger;
@@ -18,8 +13,23 @@ use log::{
   warn,
   LevelFilter,
 };
-use rand::{thread_rng, Rng};
-use clap::{Arg, App};
+use chrono::Utc;
+
+macro_rules! log_info {
+  ($client_id: expr, $table_id: expr, $msg: expr) => {
+    info!("[Client {}] Table {}: {}", $client_id, $table_id, $msg);
+  };
+}
+macro_rules! log_warn {
+  ($client_id: expr, $table_id: expr, $msg: expr) => {
+    warn!("[Client {}] Table {}: {}", $client_id, $table_id, $msg);
+  };
+}
+macro_rules! log_error {
+  ($client_id: expr, $table_id: expr, $msg: expr) => {
+    error!("[Client {}] Table {}: {}", $client_id, $table_id, $msg);
+  };
+}
 
 /*
   curl -X POST -H "Content-Type: application/json" -d '{"item_names":["ramen"] }' http://localhost:8888/v1/table/0/items
@@ -27,186 +37,149 @@ use clap::{Arg, App};
 */
 
 struct Client {
-  id: usize,
-  http_client: HttpClient,
+  http_client: reqwest::Client,
   base_url: String,
 }
 
 impl Client {
-  pub fn new(id: usize) -> Client {
-    let t = Client {
-      id,
-      http_client: HttpClient::new(),
+  pub fn new(http_client: reqwest::Client) -> Client {
+    Client {
+      http_client,
       base_url: "http://localhost:8888/v1".to_string(),
-    };
-    t.wait_until_server_is_ready();
-    info!("{}: Server is ready", id);
-    t
-  }
-
-  pub fn wait_until_server_is_ready(&self) {
-    let url = format!("{}/table/0/items", self.base_url);
-    info!("{}: Waiting for server to be ready...", self.id);
-    loop {
-      if let Ok(_) = self.http_client.get(&url).send() {
-        break;
-      }
-      thread::sleep(Duration::from_millis(500));
     }
   }
 
-  pub fn get_item(&self, table_id: usize, uuid: &str) -> Result<Option<Item>, reqwest::Error> {
-    let url = format!("{}/table/{}/item/{}", self.base_url, table_id, uuid);
-    self.http_client
-      .get(&url)
-      .send()
-      .and_then(|res|
-        match res.status() {
-          StatusCode::OK => {
-            let s = res.text()?;
-            let x = serde_json::from_str::<Item>(&s).unwrap();
-            Ok(Some(x))
-          },
-          _ => Ok(None),
-        }
-      )
-  }
-
-  pub fn get_all_items(&self, table_id: usize) -> Result<Option<Vec<Item>>, reqwest::Error> {
+  pub async fn add_item(&self, table_id: usize, item_names: Vec<String>) -> Result<Option<Vec<Item>>, reqwest::Error> {
     let url = format!("{}/table/{}/items", self.base_url, table_id);
-    self.http_client
-      .get(&url)
-      .send()
-      .and_then(|res|
-        match res.status() {
-          StatusCode::OK => {
-            let s = res.text()?;
-            let x = serde_json::from_str::<Vec<Item>>(&s).unwrap();
-            Ok(Some(x))
-          },
-          _ => Ok(None),
-        }
-      )
-  }
-
-  pub fn remove_item(&self, table_id: usize, uuid: &str) -> Result<Option<()>, reqwest::Error> {
-    let url = format!("{}/table/{}/item/{}", self.base_url, table_id, uuid);
-    self.http_client
-      .delete(&url)
-      .send()
-      .and_then(|res|
-        match res.status() {
-          StatusCode::OK => {
-            let s = res.text()?;
-            let x = serde_json::from_str::<()>(&s).unwrap();
-            Ok(Some(x))
-          },
-          _ => Ok(None),
-        }
-      )
-  }
-
-  pub fn add_item(&self, table_id: usize, item_names: Vec<String>) -> Result<Option<Vec<Item>>, reqwest::Error> {
-    let url = format!("{}/table/{}/items", self.base_url, table_id);
-    let req = AddItemParam {
+    let param = AddItemsParam {
       item_names: item_names.clone(),
     };
-    let req_json = serde_json::to_string(&req).unwrap();
-    self.http_client
-      .post(&url)
-      .body(req_json)
+
+    let resp = self.http_client.post(&url)
+      .json(&param)
       .send()
-      .and_then(|res|
-        match res.status() {
-          StatusCode::OK => {
-            let s = res.text()?;
-            let x = serde_json::from_str::<Vec<Item>>(&s).unwrap();
-            Ok(Some(x))
-          },
-          _ => Ok(None),
-        }
-      )
-  }
-}
+      .await?;
 
-fn start_client(id: usize, num_tables: usize) {
-  log::info!("{}: Started", id);
-  let cli = Client::new(id);
-  let mut rng = thread_rng();
-
-  loop {
-    let table_id: usize = rng.gen_range(0, num_tables);
-    let items2add = vec![format!("{}-dish", id)];
-
-    match cli.get_item(id, "non-existing") {
-      Ok(_item) => {}, //info!("{}: Got item {} of table {}: {:?}", id, uuid, table_id, item),
-      Err(err) => error!("{}: Failed to get item {} of table {}: {:?}", id, "uuid", table_id, err),
+    match resp.status() {
+      StatusCode::OK => {
+        let added_items = resp.json::<Vec<Item>>().await?;
+        Ok(Some(added_items))
+      },
+      _ => Ok(None)
     }
+  }
 
-    // match cli.add_item(id, items2add.clone()) {
-    //   Ok(Some(items)) => {
-    //     //info!("{}: Added items {:?} to table {}", id, items, table_id);
-    //     let uuid = &items[0].uuid;
+  pub async fn get_item(&self, table_id: usize, uuid: &str) -> Result<Option<Item>, reqwest::Error> {
+    let url = format!("{}/table/{}/item/{}", self.base_url, table_id, uuid);
+    let resp = self.http_client.get(&url)
+      .send()
+      .await?;
 
-    //     match cli.get_item(id, uuid) {
-    //       Ok(_item) => {}, //info!("{}: Got item {} of table {}: {:?}", id, uuid, table_id, item),
-    //       Err(err) => error!("{}: Failed to get item {} of table {}: {:?}", id, uuid, table_id, err),
-    //     }
+    match resp.status() {
+      StatusCode::OK => {
+        let item = resp.json::<Item>().await?;
+        Ok(Some(item))
+      },
+      _ => Ok(None),
+    }
+  }
 
-    //     match cli.get_all_items(id) {
-    //       Ok(_items) => {}, //info!("{}: Got all items of table {}: {:?}", id, table_id, items),
-    //       Err(err) => error!("{}: Failed to get all items of table {}: {:?}", id, table_id, err),
-    //     }
+  pub async fn get_all_items(&self, table_id: usize) -> Result<Option<Vec<Item>>, reqwest::Error> {
+    let url = format!("{}/table/{}/items", self.base_url, table_id);
+    let resp = self.http_client.get(&url)
+      .send()
+      .await?;
 
-    //     loop {
-    //       match cli.remove_item(id, uuid) {
-    //         Ok(_) => break,
-    //         Err(err) => {
-    //           warn!("{}: Retrying removal of {} in table {}: {:?}", id, uuid, table_id, err);
-    //           thread::sleep(Duration::from_millis(500));
-    //         },
-    //       }
-    //     }
-    //   },
-    //   Ok(None) => {},
-    //   Err(err) => {
-    //     error!("{}: Failed to add item {:?} to table {}: {:?}", id, items2add, table_id, err);
-    //   }
-    // }
+    match resp.status() {
+      StatusCode::OK => {
+        let items = resp.json::<Vec<Item>>().await?;
+        Ok(Some(items))
+      },
+      _ => Ok(None),
+    }
+  }
+
+  pub async fn remove_item(&self, table_id: usize, uuid: &str) -> Result<Option<()>, reqwest::Error> {
+    let url = format!("{}/table/{}/item/{}", self.base_url, table_id, uuid);
+    let resp = self.http_client.delete(&url)
+      .send()
+      .await?;
+
+    match resp.status() {
+      StatusCode::OK => {
+        let unit = resp.json::<()>().await?;
+        Ok(Some(unit))
+      },
+      _ => Ok(None),
+    }
   }
 }
 
-fn main() {
-  let matches = App::new("Client")
-    .arg(Arg::new("num-tables")
-            .short('t')
-            .long("tables")
-            .default_value("100")
-            .takes_value(true)
-            .about("Number of tables at restaurant"))
-    .arg(Arg::new("num-clients")
-            .short('c')
-            .long("clients")
-            .default_value("10")
-            .takes_value(true)
-            .about("Number of client threads"))
-    .get_matches();
+async fn start_client(client_id: usize, num_tables: usize) {
+  let cli = Client::new(reqwest::Client::new());
+  loop {
+    // select table
+    let table_id: usize = Utc::now().timestamp() as usize / (client_id + 1) % num_tables;
 
+    // add 1 item
+    let items2add = vec![format!("{}-dish", client_id)];
+    match cli.add_item(table_id, items2add.clone()).await {
+      Ok(Some(items)) => {
+        let uuid = &items[0].uuid;
+        log_info!(client_id, table_id, format!("Got item w/ uuid {}: {:?}", uuid, items));
+
+        // get added item
+        match cli.get_item(table_id, uuid).await {
+          Ok(Some(item)) => log_info!(client_id, table_id, format!("Got item {}: {:?}", uuid, item)),
+          Ok(None) => log_warn!(client_id, table_id, format!("Item /w uuid {} not found", uuid)),
+          Err(err) => log_error!(client_id, table_id, format!("Failed to get item {}: {:?}", uuid, err)),
+        };
+
+        // get all items of table
+        match cli.get_all_items(table_id).await {
+          Ok(Some(items)) => log_info!(client_id, table_id, format!("Got all items: {:?}", items)),
+          Ok(None) => {},
+          Err(err) => log_error!(client_id, table_id, format!("Failed to get all items: {:?}", err)),
+        };
+
+        // remove added item
+        loop {
+          match cli.remove_item(table_id, uuid).await {
+            Ok(Some(())) => break,
+            Ok(_) => {},
+            Err(err) => {
+              log_error!(client_id, table_id, format!("Failed to remove item w/ uuid {}: {:?}", uuid, err));
+              thread::sleep(Duration::from_millis(500));
+            },
+          }
+        }
+      },
+      Ok(None) => {
+        log_warn!(client_id, table_id, "Table is full");
+      },
+      Err(err) => log_error!(client_id, table_id, format!("Failed to add items {:?}: {:?}", items2add, err)),
+    }
+  }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
   SimpleLogger::new().with_level(LevelFilter::Info).init().unwrap();
 
-  let num_clients = if let Some(x) = matches.value_of("num-clients") { x.parse().unwrap() } else { 5 };
-  let num_tables = if let Some(x) = matches.value_of("num-tables") { x.parse().unwrap() } else { 100 };
+  let num_tables = 100;
 
-  info!("# of clients: {}", num_clients);
-  info!("# of tables: {}", num_tables);
+  let _ = tokio::join!(
+    tokio::spawn(start_client(0, num_tables)),
+    tokio::spawn(start_client(1, num_tables)),
+    tokio::spawn(start_client(2, num_tables)),
+    tokio::spawn(start_client(3, num_tables)),
+    tokio::spawn(start_client(4, num_tables)),
+    tokio::spawn(start_client(5, num_tables)),
+    tokio::spawn(start_client(6, num_tables)),
+    tokio::spawn(start_client(7, num_tables)),
+    tokio::spawn(start_client(8, num_tables)),
+    tokio::spawn(start_client(9, num_tables)),
+  );
 
-  let hs: Vec<JoinHandle<()>> = (0..num_tables).map(|i| {
-    thread::spawn(move || start_client(i, num_clients))
-  }).collect();
-
-  for h in hs {
-    if let Err(err) = h.join() {
-      error!("Client paniced: {:?}", err);
-    }
-  }
+  Ok(())
 }
