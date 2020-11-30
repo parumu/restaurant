@@ -49,10 +49,10 @@ $ docker-compose up --build
 ### API
 | Tag | Method | Endpoint | Parameters | Response | Description |
 |-----|--------|----------|------------|----------|------|
-| Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Ok(Item[]), 429: TooManyItems (max item exceeded), 406: NotAcceptable (bad table id) | Adds items w/ specified names to the specified table and returns added items |
+| Add | POST | /v1/table/[table_id]/items  | item_names: string[] | 200: Item[], 429: TooManyItems (max item exceeded), 406: NotAcceptable (bad table id) | Adds items w/ specified names to the specified table and returns added items |
 | Remove | DELETE | /v1/table/[table_id]/item/[uuid] | | 200: Ok, 404: NotFound, 406: NotAcceptable | Removes an item of the specified UUID |
-| Query table | GET | /v1/table/[table_id]/items | | 200: Ok(Item[]), 406: NotAcceptable | Returns all items of the specified table that is being cooked |
-| Query item | GET | /v1/table/[table_id]/item/[uuid] | | 200: Ok(Item), 406: NotAcceptable | Returns an item of the specified UUID |
+| Query table | GET | /v1/table/[table_id]/items | | 200: Item[], 406: NotAcceptable | Returns all items of the specified table that is being cooked |
+| Query item | GET | /v1/table/[table_id]/item/[uuid] | | 200: Item, 404: NotFound, 406: NotAcceptable | Returns an item of the specified UUID |
 
 #### Note
 - 0 <= `table_id` < num_tables
