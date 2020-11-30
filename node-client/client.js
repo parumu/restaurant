@@ -86,6 +86,7 @@ async function main(numTables, numClients) {
     startClientFor(numTables, i)
   }
 }
+
 const args = yargs(hideBin(process.argv))
   .option('clients', {
     alias: 'c',
