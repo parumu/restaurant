@@ -162,7 +162,7 @@ Rocket HTTP Server -> OrderMgr
 ### How to build/run
 ```
 $ cd [Project root]
-$ cargo run --bin client 10  # run with 10 client threads
+$ cargo run --bin client -- -t 100 -c 10  # run with 100 tables and 10 client threads
 ```
 
 ## Expected output

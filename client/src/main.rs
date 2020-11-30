@@ -19,6 +19,7 @@ use log::{
   LevelFilter,
 };
 use rand::{thread_rng, Rng};
+use clap::{Arg, App};
 
 /*
   curl -X POST -H "Content-Type: application/json" -d '{"item_names":["ramen"] }' http://localhost:8888/v1/table/0/items
@@ -137,50 +138,67 @@ fn start_client(id: usize, num_tables: usize) {
     let table_id: usize = rng.gen_range(0, num_tables);
     let items2add = vec![format!("{}-dish", id)];
 
-    match cli.add_item(id, items2add.clone()) {
-      Ok(Some(items)) => {
-        //info!("{}: Added items {:?} to table {}", id, items, table_id);
-        let uuid = &items[0].uuid;
-
-        match cli.get_item(id, uuid) {
-          Ok(_item) => {}, //info!("{}: Got item {} of table {}: {:?}", id, uuid, table_id, item),
-          Err(err) => error!("{}: Failed to get item {} of table {}: {:?}", id, uuid, table_id, err),
-        }
-
-        match cli.get_all_items(id) {
-          Ok(_items) => {}, //info!("{}: Got all items of table {}: {:?}", id, table_id, items),
-          Err(err) => error!("{}: Failed to get all items of table {}: {:?}", id, table_id, err),
-        }
-
-        loop {
-          match cli.remove_item(id, uuid) {
-            Ok(_) => break,
-            Err(err) => {
-              warn!("{}: Retrying removal of {} in table {}: {:?}", id, uuid, table_id, err);
-              thread::sleep(Duration::from_millis(500));
-            },
-          }
-        }
-      },
-      Ok(None) => {},
-      Err(err) => {
-        error!("{}: Failed to add item {:?} to table {}: {:?}", id, items2add, table_id, err);
-      }
+    match cli.get_item(id, "non-existing") {
+      Ok(_item) => {}, //info!("{}: Got item {} of table {}: {:?}", id, uuid, table_id, item),
+      Err(err) => error!("{}: Failed to get item {} of table {}: {:?}", id, "uuid", table_id, err),
     }
+
+    // match cli.add_item(id, items2add.clone()) {
+    //   Ok(Some(items)) => {
+    //     //info!("{}: Added items {:?} to table {}", id, items, table_id);
+    //     let uuid = &items[0].uuid;
+
+    //     match cli.get_item(id, uuid) {
+    //       Ok(_item) => {}, //info!("{}: Got item {} of table {}: {:?}", id, uuid, table_id, item),
+    //       Err(err) => error!("{}: Failed to get item {} of table {}: {:?}", id, uuid, table_id, err),
+    //     }
+
+    //     match cli.get_all_items(id) {
+    //       Ok(_items) => {}, //info!("{}: Got all items of table {}: {:?}", id, table_id, items),
+    //       Err(err) => error!("{}: Failed to get all items of table {}: {:?}", id, table_id, err),
+    //     }
+
+    //     loop {
+    //       match cli.remove_item(id, uuid) {
+    //         Ok(_) => break,
+    //         Err(err) => {
+    //           warn!("{}: Retrying removal of {} in table {}: {:?}", id, uuid, table_id, err);
+    //           thread::sleep(Duration::from_millis(500));
+    //         },
+    //       }
+    //     }
+    //   },
+    //   Ok(None) => {},
+    //   Err(err) => {
+    //     error!("{}: Failed to add item {:?} to table {}: {:?}", id, items2add, table_id, err);
+    //   }
+    // }
   }
 }
 
 fn main() {
+  let matches = App::new("Client")
+    .arg(Arg::new("num-tables")
+            .short('t')
+            .long("tables")
+            .default_value("100")
+            .takes_value(true)
+            .about("Number of tables at restaurant"))
+    .arg(Arg::new("num-clients")
+            .short('c')
+            .long("clients")
+            .default_value("10")
+            .takes_value(true)
+            .about("Number of client threads"))
+    .get_matches();
+
   SimpleLogger::new().with_level(LevelFilter::Info).init().unwrap();
 
-  // Get # of clients from the 1st command line arg. Set 10 if missing
-  let args: Vec<String> = std::env::args().collect();
-  let num_clients = if args.len() < 2 { 10 } else {
-    args[1].parse::<usize>().unwrap()
-  };
-  info!("# of clients: {}", num_clients);
+  let num_clients = if let Some(x) = matches.value_of("num-clients") { x.parse().unwrap() } else { 5 };
+  let num_tables = if let Some(x) = matches.value_of("num-tables") { x.parse().unwrap() } else { 100 };
 
-  let num_tables = 1;
+  info!("# of clients: {}", num_clients);
+  info!("# of tables: {}", num_tables);
 
   let hs: Vec<JoinHandle<()>> = (0..num_tables).map(|i| {
     thread::spawn(move || start_client(i, num_clients))

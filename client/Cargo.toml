@@ -13,3 +13,4 @@ rand = "0.7"
 reqwest = { version = "0.10", features = ["json", "blocking"] }
 application = { path = "../application" }
 simple_logger = "1.11"
+clap = "3.0.0-beta.2"
