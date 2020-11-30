@@ -1,9 +1,12 @@
 {
-  "name": "axios-boy",
+  "name": "node-client",
   "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
+  "license": "UNLICENCED",
+  "scripts": {
+    "start": "node client.js"
+  },
   "dependencies": {
-    "axios": "^0.21.0"
+    "axios": "^0.21.0",
+    "yargs": "^16.1.1"
   }
 }

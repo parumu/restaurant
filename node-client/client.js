@@ -7,15 +7,19 @@ const axios = axiosBase.create({
   },
   responseType: 'json'
 })
+const yargs = require('yargs/yargs')
+const { hideBin } = require('yargs/helpers')
 
-async function startClientFor(clientId) {
+async function startClientFor(numTables, clientId) {
   const tableId = clientId
 
-  const logError = (s) => console.error(`======ERROR=====> ${tableId}:`, s)
-  const logWarn = (s) => console.warn(`===WARN===> ${tableId}:`, s)
-  const logInfo = (s) => console.log(`${tableId}`, s)
+  const logError = (s) => console.error(`[Error] ${tableId}:`, s)
+  const logWarn = (s) => console.warn(`[Warn] ${tableId}:`, s)
+  const logInfo = (s) => console.error(`[Info] ${tableId}`, s)
 
   while(true) {
+    const tableId = Math.floor(Math.random() * numTables)
+
     let uuid
     try {
       // add 1 items
@@ -77,10 +81,23 @@ async function startClientFor(clientId) {
   }
 }
 
-async function main(numClients) {
+async function main(numTables, numClients) {
   for(let i=0; i<numClients; i++) {
-    startClientFor(i)
+    startClientFor(numTables, i)
   }
 }
+const args = yargs(hideBin(process.argv))
+  .option('clients', {
+    alias: 'c',
+    description: 'Number of client threads',
+    default: 10,
+  })
+  .option('tables', {
+    alias: 't',
+    description: 'Number of tables at restaurant',
+    default: 100,
+  })
+  .help()
+  .argv
 
-main(100)
+main(args.tables, args.clients)
