@@ -7,7 +7,10 @@ use std::{
   thread::JoinHandle,
   time::Duration,
 };
-use reqwest::blocking::Client as HttpClient;
+use reqwest::{
+  blocking::Client as HttpClient,
+  StatusCode,
+};
 use simple_logger::SimpleLogger;
 use log::{
   info,
@@ -51,31 +54,58 @@ impl Client {
     }
   }
 
-  pub fn get_item(&self, table_id: usize, uuid: &str) -> Result<Item, reqwest::Error> {
+  pub fn get_item(&self, table_id: usize, uuid: &str) -> Result<Option<Item>, reqwest::Error> {
     let url = format!("{}/table/{}/item/{}", self.base_url, table_id, uuid);
     self.http_client
       .get(&url)
       .send()
-      .and_then(|res| res.text().map(|s| serde_json::from_str::<Item>(&s).unwrap()))
+      .and_then(|res|
+        match res.status() {
+          StatusCode::OK => {
+            let s = res.text()?;
+            let x = serde_json::from_str::<Item>(&s).unwrap();
+            Ok(Some(x))
+          },
+          _ => Ok(None),
+        }
+      )
   }
 
-  pub fn get_all_items(&self, table_id: usize) -> Result<Vec<Item>, reqwest::Error> {
+  pub fn get_all_items(&self, table_id: usize) -> Result<Option<Vec<Item>>, reqwest::Error> {
     let url = format!("{}/table/{}/items", self.base_url, table_id);
     self.http_client
       .get(&url)
       .send()
-      .and_then(|res| res.text().map(|s| serde_json::from_str::<Vec<Item>>(&s).unwrap()))
+      .and_then(|res|
+        match res.status() {
+          StatusCode::OK => {
+            let s = res.text()?;
+            let x = serde_json::from_str::<Vec<Item>>(&s).unwrap();
+            Ok(Some(x))
+          },
+          _ => Ok(None),
+        }
+      )
   }
 
-  pub fn remove_item(&self, table_id: usize, uuid: &str) -> Result<(), reqwest::Error> {
+  pub fn remove_item(&self, table_id: usize, uuid: &str) -> Result<Option<()>, reqwest::Error> {
     let url = format!("{}/table/{}/item/{}", self.base_url, table_id, uuid);
     self.http_client
       .delete(&url)
       .send()
-      .and_then(|res| res.text().map(|s| serde_json::from_str::<()>(&s).unwrap()))
+      .and_then(|res|
+        match res.status() {
+          StatusCode::OK => {
+            let s = res.text()?;
+            let x = serde_json::from_str::<()>(&s).unwrap();
+            Ok(Some(x))
+          },
+          _ => Ok(None),
+        }
+      )
   }
 
-  pub fn add_item(&self, table_id: usize, item_names: Vec<String>) -> Result<Vec<Item>, reqwest::Error> {
+  pub fn add_item(&self, table_id: usize, item_names: Vec<String>) -> Result<Option<Vec<Item>>, reqwest::Error> {
     let url = format!("{}/table/{}/items", self.base_url, table_id);
     let req = AddItemParam {
       item_names: item_names.clone(),
@@ -85,7 +115,16 @@ impl Client {
       .post(&url)
       .body(req_json)
       .send()
-      .and_then(|res| res.text().map(|s| serde_json::from_str::<Vec<Item>>(&s).unwrap()))
+      .and_then(|res|
+        match res.status() {
+          StatusCode::OK => {
+            let s = res.text()?;
+            let x = serde_json::from_str::<Vec<Item>>(&s).unwrap();
+            Ok(Some(x))
+          },
+          _ => Ok(None),
+        }
+      )
   }
 }
 
@@ -99,7 +138,7 @@ fn start_client(id: usize, num_tables: usize) {
     let items2add = vec![format!("{}-dish", id)];
 
     match cli.add_item(id, items2add.clone()) {
-      Ok(items) => {
+      Ok(Some(items)) => {
         //info!("{}: Added items {:?} to table {}", id, items, table_id);
         let uuid = &items[0].uuid;
 
@@ -123,6 +162,7 @@ fn start_client(id: usize, num_tables: usize) {
           }
         }
       },
+      Ok(None) => {},
       Err(err) => {
         error!("{}: Failed to add item {:?} to table {}: {:?}", id, items2add, table_id, err);
       }
@@ -140,7 +180,7 @@ fn main() {
   };
   info!("# of clients: {}", num_clients);
 
-  let num_tables = 5;
+  let num_tables = 1;
 
   let hs: Vec<JoinHandle<()>> = (0..num_tables).map(|i| {
     thread::spawn(move || start_client(i, num_clients))
@@ -149,7 +189,6 @@ fn main() {
   for h in hs {
     if let Err(err) = h.join() {
       error!("Client paniced: {:?}", err);
-      return;
     }
   }
 }
